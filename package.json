@@ -1,0 +1,12 @@
+{
+  "name": "levera-contracts",
+  "version": "1.0.0",
+  "description": "A permissionless lending, borrowing, and margin trading protocol.",
+  "scripts": {
+    "test": "make test"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "~16.3.1"
+  }
+}

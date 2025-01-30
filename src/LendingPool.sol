@@ -4,26 +4,28 @@ pragma solidity ^0.8.13;
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract LendingPool {
-    address public usdc = 0x5e4695a76Dc81ECc041576d672Da1208d6d8922B; // our own USDC
-    address public wbtc = 0x919c586538EE34B87A12c584ba6463e7e12338E9; // our own WBTC
+    // Mock USD token
+    IERC20 public immutable mockUSDC;
+    IERC20 public immutable mockWBTC;
 
     uint256 public totalSupplyAssets;
     uint256 public totalSupplyShares;
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
+    uint256 lastAccrued;
 
     mapping(address => uint256) public userSupplyShares;
     mapping(address => uint256) public userBorrowShares;
     mapping(address => uint256) public userCollaterals;
 
-    uint256 lastAccrued;
-
-    constructor() {
+    constructor(IERC20 _mockUSDC, IERC20 _mockWBTC) {
+        mockUSDC = _mockUSDC;
+        mockWBTC = _mockWBTC;
         lastAccrued = block.timestamp;
     }
 
     function supply(uint256 amount) public {
-        IERC20(usdc).transferFrom(msg.sender, address(this), amount);
+        IERC20(mockUSDC).transferFrom(msg.sender, address(this), amount);
 
         _accrueInterest();
 
@@ -47,20 +49,20 @@ contract LendingPool {
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
-        IERC20(usdc).transfer(msg.sender, amount);
+        IERC20(mockUSDC).transfer(msg.sender, amount);
     }
 
     function supplyCollateral(uint256 amount) public {
         _accrueInterest();
 
-        IERC20(wbtc).transferFrom(msg.sender, address(this), amount);
+        IERC20(mockWBTC).transferFrom(msg.sender, address(this), amount);
         userCollaterals[msg.sender] += amount;
     }
 
     function withdrawCollateral(uint256 amount) public {
         _accrueInterest();
 
-        IERC20(wbtc).transfer(msg.sender, amount);
+        IERC20(mockWBTC).transfer(msg.sender, amount);
         userCollaterals[msg.sender] -= amount;
     }
 
@@ -78,7 +80,7 @@ contract LendingPool {
         totalBorrowShares += shares;
         userBorrowShares[msg.sender] += shares;
 
-        IERC20(usdc).transfer(msg.sender, amount);
+        IERC20(mockUSDC).transfer(msg.sender, amount);
     }
 
     function repay(uint256 shares) public {
@@ -90,7 +92,7 @@ contract LendingPool {
         totalBorrowShares -= shares;
         userBorrowShares[msg.sender] -= shares;
 
-        IERC20(usdc).transferFrom(msg.sender, address(this), amount);
+        IERC20(mockUSDC).transferFrom(msg.sender, address(this), amount);
     }
 
     function accrueInterest() public {
