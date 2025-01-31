@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
+import {ErrorsLib} from "./libraries/ErrorsLib.sol";
 
 contract LendingPool {
-    // Mock USD token
-    IERC20 public immutable mockUSDC;
-    IERC20 public immutable mockWBTC;
+    IERC20 public immutable loanToken;
+    IERC20 public immutable collateralToken;
+    AggregatorV2V3Interface internal loanTokenUsdDataFeed;
+    AggregatorV2V3Interface internal collateralTokenUsdDataFeed;
 
     uint256 public totalSupplyAssets;
     uint256 public totalSupplyShares;
@@ -18,14 +21,38 @@ contract LendingPool {
     mapping(address => uint256) public userBorrowShares;
     mapping(address => uint256) public userCollaterals;
 
-    constructor(IERC20 _mockUSDC, IERC20 _mockWBTC) {
-        mockUSDC = _mockUSDC;
-        mockWBTC = _mockWBTC;
+    uint256 constant PRECISION = 1e18; // Precision
+
+    constructor(IERC20 _loanToken, IERC20 _collateralToken) {
+        loanToken = _loanToken;
+        collateralToken = _collateralToken;
         lastAccrued = block.timestamp;
     }
 
+    function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
+        (, int256 answer,,,) = dataFeed.latestRoundData();
+        require(answer >= 0, ErrorsLib.NegativeAnswer)
+        return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
+    }
+
+    function getConversionPrice(
+        uint256 amountIn,
+        AggregatorV2V3Interface dataFeedIn,
+        AggregatorV2V3Interface dataFeedOut
+    ) public view returns (uint256 amountOut) {
+        uint256 priceFeedIn = getDataFeedLatestAnswer(dataFeedIn);
+        uint256 priceFeedOut = getDataFeedLatestAnswer(dataFeedOut);
+
+        amountOut = (amountIn * priceFeedIn) / priceFeedOut;
+    }
+
     function supply(uint256 amount) public {
-        IERC20(mockUSDC).transferFrom(msg.sender, address(this), amount);
+        require(msg.sender != address(0), ErrorsLib.ZERO_ADDRESS);
+        require(address(loanToken) != address(0), ErrorsLib.ZERO_ADDRESS);
+
+        // Transfer USDC from sender to contract
+        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        require(success, ErrorsLib.TRANSFER_REVERTED);
 
         _accrueInterest();
 
@@ -49,20 +76,20 @@ contract LendingPool {
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
-        IERC20(mockUSDC).transfer(msg.sender, amount);
+        IERC20(loanToken).transfer(msg.sender, amount);
     }
 
     function supplyCollateral(uint256 amount) public {
         _accrueInterest();
 
-        IERC20(mockWBTC).transferFrom(msg.sender, address(this), amount);
+        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
         userCollaterals[msg.sender] += amount;
     }
 
     function withdrawCollateral(uint256 amount) public {
         _accrueInterest();
 
-        IERC20(mockWBTC).transfer(msg.sender, amount);
+        IERC20(collateralToken).transfer(msg.sender, amount);
         userCollaterals[msg.sender] -= amount;
     }
 
@@ -80,7 +107,7 @@ contract LendingPool {
         totalBorrowShares += shares;
         userBorrowShares[msg.sender] += shares;
 
-        IERC20(mockUSDC).transfer(msg.sender, amount);
+        IERC20(loanToken).transfer(msg.sender, amount);
     }
 
     function repay(uint256 shares) public {
@@ -92,7 +119,7 @@ contract LendingPool {
         totalBorrowShares -= shares;
         userBorrowShares[msg.sender] -= shares;
 
-        IERC20(mockUSDC).transferFrom(msg.sender, address(this), amount);
+        IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
     }
 
     function accrueInterest() public {
