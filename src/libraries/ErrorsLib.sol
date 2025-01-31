@@ -8,6 +8,9 @@ library ErrorsLib {
     /// @notice Thrown when a token transfer reverted.
     string internal constant TRANSFER_REVERTED = "transfer reverted";
 
+    /// @notice Thrown when pool with same basePoolParams has been created.
+    string internal constant POOL_ALREADY_CREATED = "pool has been created";
+
     /// @notice Thrown when latest round data less than zero.
-    string internal constant NegativeAnswer = "negative answer";
+    string internal constant NEGATIVE_ANSWER = "negative answer";
 }

@@ -5,7 +5,6 @@ import {LendingPool} from "./LendingPool.sol";
 
 contract PositionManager {
     struct Position {
-        address user;
         uint256 collateralAmount;
         uint256 borrowedAmount;
         uint256 timestamp;
@@ -26,13 +25,8 @@ contract PositionManager {
     function createPosition() public {
         require(!userPositions[msg.sender].isActive, "Position already exists");
 
-        userPositions[msg.sender] = Position({
-            user: msg.sender,
-            collateralAmount: 0,
-            borrowedAmount: 0,
-            timestamp: block.timestamp,
-            isActive: true
-        });
+        userPositions[msg.sender] =
+            Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
 
         emit PositionCreated(msg.sender, block.timestamp);
     }

@@ -30,7 +30,7 @@ contract LendingPool {
 
     function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
         (, int256 answer,,,) = dataFeed.latestRoundData();
-        require(answer >= 0, ErrorsLib.NegativeAnswer);
+        require(answer >= 0, ErrorsLib.NEGATIVE_ANSWER);
         return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
     }
 
