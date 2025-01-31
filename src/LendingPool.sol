@@ -31,7 +31,7 @@ contract LendingPool {
 
     function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
         (, int256 answer,,,) = dataFeed.latestRoundData();
-        require(answer >= 0, ErrorsLib.NegativeAnswer)
+        require(answer >= 0, ErrorsLib.NegativeAnswer);
         return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
     }
 
@@ -82,7 +82,9 @@ contract LendingPool {
     function supplyCollateral(uint256 amount) public {
         _accrueInterest();
 
-        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        bool success = IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        require(success, "Transfer failed");
+
         userCollaterals[msg.sender] += amount;
     }
 
@@ -94,6 +96,9 @@ contract LendingPool {
     }
 
     function borrow(uint256 amount) public {
+        uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
+        require(availableLiquidity >= amount, "Insufficient liquidity to borrow");
+
         _accrueInterest();
 
         uint256 shares = 0;
@@ -114,12 +119,15 @@ contract LendingPool {
         _accrueInterest();
 
         uint256 amount = (shares * totalBorrowAssets) / totalBorrowShares;
+        require(amount > 0, "Invalid repayment amount");
+
+        // Transfer funds from user
+        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        require(success, "Repayment transfer failed");
 
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
         userBorrowShares[msg.sender] -= shares;
-
-        IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
     }
 
     function accrueInterest() public {
