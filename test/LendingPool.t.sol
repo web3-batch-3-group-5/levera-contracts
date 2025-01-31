@@ -22,17 +22,40 @@ contract LendingPoolTest is Test {
 
         mockUSDC.mint(address(alice), 100_000e6);
         mockWBTC.mint(address(alice), 1000);
+
+        deal(address(mockUSDC), alice, 100_000e6);
+        deal(address(mockWBTC), alice, 1000);
     }
 
     function test_supply() public {
-        // deposit
+        uint256 initialDeposit = 100_000e6;
+        uint256 borrowAmount = 100e6;
+
+        // Alice deposit
         vm.startPrank(alice);
-        IERC20(mockUSDC).approve(address(lendingPool), 1000e6);
-        lendingPool.supply(1000e6);
+        IERC20(mockUSDC).approve(address(lendingPool), initialDeposit);
+
+        // Alice supply to lending pool
+        lendingPool.supply(initialDeposit);
         vm.stopPrank();
 
+        // Verify Alice's balance in LendingPool
+        uint256 aliceShares = lendingPool.userSupplyShares(alice);
+        assertEq(aliceShares, initialDeposit, "Alice should receive correct shares");
+
+        // Verify LendingPool's totalSupplyAssets
+        assertEq(lendingPool.totalSupplyAssets(), initialDeposit, "Total supply should update");
+
+        // Ensure LendingPool received USDC
+        assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), initialDeposit, "LendingPool should receive USDC");
+
+        // Check Alice's USDC balance (should decrease)
+        uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
+        assertEq(aliceBalanceAfter, 0, "Alice should have no USDC left after supplying");
+
+        // Bob Borrow
         vm.startPrank(bob);
-        lendingPool.borrow(100e6);
+        lendingPool.borrow(borrowAmount);
         vm.stopPrank();
 
         console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());

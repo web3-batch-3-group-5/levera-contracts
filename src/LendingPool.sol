@@ -18,7 +18,6 @@ contract LendingPool {
     uint256 lastAccrued;
 
     mapping(address => uint256) public userSupplyShares;
-    mapping(address => uint256) public userBorrowShares;
     mapping(address => uint256) public userCollaterals;
 
     uint256 constant PRECISION = 1e18; // Precision
@@ -84,8 +83,6 @@ contract LendingPool {
 
         bool success = IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
         require(success, "Transfer failed");
-
-        userCollaterals[msg.sender] += amount;
     }
 
     function withdrawCollateral(uint256 amount) public {
@@ -110,7 +107,6 @@ contract LendingPool {
 
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
-        userBorrowShares[msg.sender] += shares;
 
         IERC20(loanToken).transfer(msg.sender, amount);
     }
@@ -127,7 +123,6 @@ contract LendingPool {
 
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
-        userBorrowShares[msg.sender] -= shares;
     }
 
     function accrueInterest() public {

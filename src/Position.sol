@@ -58,8 +58,9 @@ contract PositionManager {
         Position storage position = userPositions[msg.sender];
 
         // Ensure the borrow amount does not exceed the available collateral (collateralAmount - borrowedAmount)
-        uint256 availableCollateral = position.collateralAmount - position.borrowedAmount;
-        require(amount <= availableCollateral, "Borrow amount exceeds available collateral");
+        /// @lendingPool.getConversionPrice rate
+        uint256 allowedBorrowAmount = position.collateralAmount - position.borrowedAmount;
+        require(amount <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
 
         // Borrow from LendingPool
         lendingPool.borrow(amount);
@@ -76,16 +77,10 @@ contract PositionManager {
 
         // Ensure user has borrowed funds
         Position storage position = userPositions[msg.sender];
-        require(position.borrowedAmount >= amount, "Repay amount exceeds borrowed");
+        require(position.borrowedAmount > amount, "Repay amount exceeds borrowed");
 
         // Update borrowed amount
         position.borrowedAmount -= amount;
-        // Close position if fully repaid
-        if (position.borrowedAmount == 0 && position.collateralAmount == 0) {
-            position.isActive = false;
-            emit PositionClosed(msg.sender);
-        }
-
         emit Repaid(msg.sender, amount);
     }
 
