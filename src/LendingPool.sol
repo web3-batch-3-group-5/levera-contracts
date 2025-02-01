@@ -89,7 +89,6 @@ contract LendingPool {
         _accrueInterest();
 
         IERC20(collateralToken).transfer(msg.sender, amount);
-        userCollaterals[msg.sender] -= amount;
     }
 
     function borrow(uint256 amount) public {
