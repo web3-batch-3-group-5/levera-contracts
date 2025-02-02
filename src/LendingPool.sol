@@ -3,9 +3,12 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
 
 contract LendingPool {
+    error ZeroAddress();
+    error TransferReverted();
+    error NegativeAnswer();
+
     IERC20 public immutable loanToken;
     IERC20 public immutable collateralToken;
     AggregatorV2V3Interface internal loanTokenUsdDataFeed;
@@ -21,6 +24,9 @@ contract LendingPool {
     mapping(address => uint256) public userCollaterals;
 
     uint256 constant PRECISION = 1e18; // Precision
+    /*
+    mapping(address(positionContract) => Position) positions;
+    */
 
     constructor(IERC20 _loanToken, IERC20 _collateralToken) {
         loanToken = _loanToken;
@@ -30,7 +36,7 @@ contract LendingPool {
 
     function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
         (, int256 answer,,,) = dataFeed.latestRoundData();
-        require(answer >= 0, ErrorsLib.NEGATIVE_ANSWER);
+        if (answer < 0) revert NegativeAnswer();
         return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
     }
 
@@ -46,12 +52,11 @@ contract LendingPool {
     }
 
     function supply(uint256 amount) public {
-        require(msg.sender != address(0), ErrorsLib.ZERO_ADDRESS);
-        require(address(loanToken) != address(0), ErrorsLib.ZERO_ADDRESS);
+        if (msg.sender != address(0) || address(loanToken) != address(0)) revert ZeroAddress();
 
         // Transfer USDC from sender to contract
         bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        require(success, ErrorsLib.TRANSFER_REVERTED);
+        if (!success) revert TransferReverted();
 
         _accrueInterest();
 
