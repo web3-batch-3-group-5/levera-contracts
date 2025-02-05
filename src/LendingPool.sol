@@ -4,10 +4,10 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverter} from "./PriceConverter.sol";
+import {LendingPosition, Position} from "./LendingPosition.sol";
 
 error ZeroAddress();
 error TransferReverted();
-error NegativeAnswer();
 
 contract LendingPool {
     IERC20 public immutable loanToken;
@@ -22,18 +22,23 @@ contract LendingPool {
     uint256 lastAccrued;
 
     mapping(address => uint256) public userSupplyShares;
-    mapping(address => uint256) public userCollaterals;
+    mapping(address => mapping(address => Position)) public userPositions;
 
-    constructor(IERC20 _loanToken, IERC20 _collateralToken, address _loanPriceFeed, address _collateralPriceFeed) {
+    constructor(
+        IERC20 _loanToken,
+        IERC20 _collateralToken,
+        AggregatorV2V3Interface _loanTokenUsdPriceFeed,
+        AggregatorV2V3Interface _collateralTokenUsdPriceFeed
+    ) {
         loanToken = _loanToken;
         collateralToken = _collateralToken;
-        loanTokenUsdDataFeed = _loanPriceFeed;
-        collateralTokenUsdDataFeed = _collateralPriceFeed;
+        loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
+        collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
         lastAccrued = block.timestamp;
     }
 
     function supply(uint256 amount) public {
-        if (msg.sender != address(0) || address(loanToken) != address(0)) revert ZeroAddress();
+        if (msg.sender == address(0) || address(loanToken) == address(0)) revert ZeroAddress();
 
         // Transfer USDC from sender to contract
         bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
@@ -71,11 +76,11 @@ contract LendingPool {
         require(success, "Transfer failed");
     }
 
-    function withdrawCollateral(uint256 amount) public {
+    function withdrawCollateral(address onBehalf, uint256 amount) public {
         _accrueInterest();
 
         IERC20(collateralToken).transfer(msg.sender, amount);
-        userCollaterals[msg.sender] -= amount;
+        userPositions[msg.sender][onBehalf].collateralAmount -= amount;
     }
 
     function borrow(uint256 amount) public {

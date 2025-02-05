@@ -5,14 +5,14 @@ import {LendingPool} from "./LendingPool.sol";
 
 error InsufficientCollateral();
 
-contract PositionManager {
-    struct Position {
-        uint256 collateralAmount;
-        uint256 borrowedAmount;
-        uint256 timestamp;
-        bool isActive;
-    }
+struct Position {
+    uint256 collateralAmount;
+    uint256 borrowedAmount;
+    uint256 timestamp;
+    bool isActive;
+}
 
+contract LendingPosition {
     mapping(address => Position) public userPositions;
     LendingPool public lendingPool;
 
@@ -48,10 +48,10 @@ contract PositionManager {
     }
 
     function borrowByPosition(uint256 amount) public {
-        if (
-            lendingPool.getConversionRate(amount, loanToken, collateralToken)
-                >= userPositions[msg.sender].collateralAmount
-        ) revert InsufficientCollateral();
+        // if (
+        //     lendingPool.getConversionRate(amount, loanToken, collateralToken)
+        //         >= userPositions[msg.sender].collateralAmount
+        // ) revert InsufficientCollateral();
         // Ensure position is active before proceeding
         require(userPositions[msg.sender].isActive, "Failed to create position");
 

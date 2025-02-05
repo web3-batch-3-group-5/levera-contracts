@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockWBTC} from "../src/mocks/MockWBTC.sol";
@@ -19,10 +20,10 @@ contract LendingScript is Script {
 
         // Deploy the mock USDC and WBTC contract
         MockV3Aggregator usdcAggregator = new MockV3Aggregator(DECIMALS, USDC_USD_PRICE);
-        ERC20Mock mockUSDC = new MockUSDC();
+        IERC20 mockUSDC = new MockUSDC();
 
         MockV3Aggregator wbtcAggregator = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
-        ERC20Mock mockWBTC = new MockWBTC();
+        IERC20 mockWBTC = new MockWBTC();
 
         // Deploy the LendingPool contract with the address of the mock USDC and WBTC contract
         lendingPool = new LendingPool(mockUSDC, mockWBTC, usdcAggregator, wbtcAggregator);

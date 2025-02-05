@@ -3,33 +3,54 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {LendingPool} from "../src/LendingPool.sol";
-import {MockUSDC} from "../src/mocks/MockUSDC.sol";
-import {MockWBTC} from "../src/mocks/MockWBTC.sol";
 
 contract LendingPoolTest is Test {
-    MockUSDC public mockUSDC;
-    MockWBTC public mockWBTC;
+    ERC20Mock public mockUSDC;
+    ERC20Mock public mockWBTC;
+    MockV3Aggregator public usdcUsdPriceFeed;
+    MockV3Aggregator public wbtcUsdPriceFeed;
     LendingPool public lendingPool;
+
+    uint8 public DECIMALS = 8;
+    int64 public constant USDC_USD_PRICE = 1e8;
+    int64 public constant WBTC_USD_PRICE = 1e13;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
     function setUp() public {
-        mockUSDC = new MockUSDC();
-        mockWBTC = new MockWBTC();
-        lendingPool = new LendingPool(mockUSDC, mockWBTC);
+        mockUSDC = new ERC20Mock();
+        mockWBTC = new ERC20Mock();
+        usdcUsdPriceFeed = new MockV3Aggregator(DECIMALS, USDC_USD_PRICE);
+        wbtcUsdPriceFeed = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
 
-        mockUSDC.mint(address(alice), 100_000e6);
-        mockWBTC.mint(address(alice), 1000);
+        lendingPool = new LendingPool(mockUSDC, mockWBTC, usdcUsdPriceFeed, wbtcUsdPriceFeed);
 
-        deal(address(mockUSDC), alice, 100_000e6);
-        deal(address(mockWBTC), alice, 1000);
+        console.log("Mock USDC deployed at:", address(mockUSDC));
+        console.log("Mock WBTC deployed at:", address(mockWBTC));
+        console.log("USDC/USD Price Feed deployed at:", address(usdcUsdPriceFeed));
+        console.log("WBTC/USD Price Feed deployed at:", address(wbtcUsdPriceFeed));
+        console.log("Lending Pool deployed at:", address(lendingPool));
+
+        // mockUSDC.mint(address(this), 1000_000e6);
+        // mockWBTC.mint(address(this), 10);
+
+        // mockUSDC.mint(address(lendingPool), 1000_000e6);
+        // mockWBTC.mint(address(lendingPool), 10);
+
+        mockUSDC.mint(alice, 100_000e6);
+        mockWBTC.mint(alice, 1);
+
+        mockUSDC.mint(bob, 100_000e6);
+        mockWBTC.mint(bob, 2);
     }
 
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;
-        uint256 borrowAmount = 100e6;
+        uint256 borrowAmount = 20_000e6;
 
         // Alice deposit
         vm.startPrank(alice);
