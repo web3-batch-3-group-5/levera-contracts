@@ -7,6 +7,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {LendingPosition, Position} from "../src/LendingPosition.sol";
+import {PriceConverter} from "../src/PriceConverter.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -45,54 +46,63 @@ contract LendingPoolTest is Test {
         // mockWBTC.mint(address(lendingPool), 10);
 
         mockUSDC.mint(alice, 100_000e6);
-        mockWBTC.mint(alice, 1);
+        mockWBTC.mint(alice, 1e6);
 
         mockUSDC.mint(bob, 100_000e6);
-        mockWBTC.mint(bob, 2);
+        mockWBTC.mint(bob, 2e6);
     }
 
-    // function test_supply() public {
-    //     uint256 initialDeposit = 100_000e6;
-    //     uint256 borrowAmount = 20_000e6;
+    function test_supply() public {
+        uint256 initialDeposit = 100_000e6;
+        uint256 borrowAmount = 20_000e6;
 
-    //     // Alice deposit
-    //     vm.startPrank(alice);
-    //     IERC20(mockUSDC).approve(address(lendingPool), initialDeposit);
+        // Alice deposit
+        vm.startPrank(alice);
+        IERC20(mockUSDC).approve(address(lendingPool), initialDeposit);
 
-    //     // Alice supply to lending pool
-    //     lendingPool.supply(initialDeposit);
-    //     vm.stopPrank();
+        // Alice supply to lending pool
+        lendingPool.supply(initialDeposit);
+        vm.stopPrank();
 
-    //     // Verify Alice's balance in LendingPool
-    //     uint256 aliceShares = lendingPool.userSupplyShares(alice);
-    //     assertEq(aliceShares, initialDeposit, "Alice should receive correct shares");
+        // Verify Alice's balance in LendingPool
+        uint256 aliceShares = lendingPool.userSupplyShares(alice);
+        assertEq(aliceShares, initialDeposit, "Alice should receive correct shares");
 
-    //     // Verify LendingPool's totalSupplyAssets
-    //     assertEq(lendingPool.totalSupplyAssets(), initialDeposit, "Total supply should update");
+        // Verify LendingPool's totalSupplyAssets
+        assertEq(lendingPool.totalSupplyAssets(), initialDeposit, "Total supply should update");
 
-    //     // Ensure LendingPool received USDC
-    //     assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), initialDeposit, "LendingPool should receive USDC");
+        // Ensure LendingPool received USDC
+        assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), initialDeposit, "LendingPool should receive USDC");
 
-    //     // Check Alice's USDC balance (should decrease)
-    //     uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
-    //     assertEq(aliceBalanceAfter, 0, "Alice should have no USDC left after supplying");
+        // Check Alice's USDC balance (should decrease)
+        uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
+        assertEq(aliceBalanceAfter, 0, "Alice should have no USDC left after supplying");
 
-    //     // Bob Borrow
-    //     vm.startPrank(bob);
-    //     LendingPosition onBehalf = new LendingPosition();
-    //     lendingPool.borrowByPosition(address(onBehalf), borrowAmount);
-    //     vm.stopPrank();
+        // Bob Borrow
+        vm.startPrank(bob);
+        IERC20(mockWBTC).approve(address(lendingPool), 1e6);
+        address onBehalf = address(lendingPool.createPosition());
+        lendingPool.supplyCollateralByPosition(onBehalf, 1e6);
+        (uint256 collateralAmount, uint256 borrowedAmount, uint256 timestamp, bool isActive) =
+            lendingPool.getPosition(onBehalf);
 
-    //     console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());
-    //     console.log("Alice userSupplyShares =", lendingPool.userSupplyShares(alice));
+        uint256 amountInCollateral = PriceConverter.getConversionRate(1, wbtcUsdPriceFeed, usdcUsdPriceFeed);
 
-    //     vm.warp(block.timestamp + 1 days);
+        console.log("collateral amount", amountInCollateral);
 
-    //     lendingPool.accrueInterest();
+        lendingPool.borrowByPosition(address(onBehalf), borrowAmount);
+        vm.stopPrank();
 
-    //     console.log("totalSupplyAssets setelah 1 hari =", lendingPool.totalSupplyAssets());
-    //     console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
-    // }
+        console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());
+        console.log("Alice userSupplyShares =", lendingPool.userSupplyShares(alice));
+
+        vm.warp(block.timestamp + 1 days);
+
+        lendingPool.accrueInterest();
+
+        console.log("totalSupplyAssets setelah 1 hari =", lendingPool.totalSupplyAssets());
+        console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
+    }
 
     // Creating position with zero address as msg.sender
     function test_create_position() public {

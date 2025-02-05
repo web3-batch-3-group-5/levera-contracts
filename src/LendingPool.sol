@@ -121,12 +121,12 @@ contract LendingPool {
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        uint256 amountInCollateral =
-            PriceConverter.getConversionRate(amount, loanTokenUsdDataFeed, collateralTokenUsdDataFeed);
+        uint256 collateral = PriceConverter.getConversionRate(
+            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
+        );
 
-        uint256 allowedBorrowAmount =
-            userPositions[msg.sender][onBehalf].collateralAmount - userPositions[msg.sender][onBehalf].borrowedAmount;
-        require(amountInCollateral <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
+        uint256 allowedBorrowAmount = collateral - userPositions[msg.sender][onBehalf].borrowedAmount;
+        require(allowedBorrowAmount >= amount, "Borrow amount exceeds available collateral");
 
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
         require(availableLiquidity >= amount, "Insufficient liquidity to borrow");
