@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {LendingPool} from "../src/LendingPool.sol";
+import {LendingPosition} from "../src/LendingPosition.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -76,7 +77,8 @@ contract LendingPoolTest is Test {
 
         // Bob Borrow
         vm.startPrank(bob);
-        lendingPool.borrow(borrowAmount);
+        LendingPosition onBehalf = new LendingPosition(address(lendingPool));
+        lendingPool.borrowByPosition(address(onBehalf), borrowAmount);
         vm.stopPrank();
 
         console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());

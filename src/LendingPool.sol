@@ -24,6 +24,8 @@ contract LendingPool {
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
 
+    event Repaid(address indexed user, uint256 amount);
+
     constructor(
         IERC20 _loanToken,
         IERC20 _collateralToken,
@@ -69,21 +71,31 @@ contract LendingPool {
         IERC20(loanToken).transfer(msg.sender, amount);
     }
 
-    function supplyCollateral(uint256 amount) public {
-        _accrueInterest();
-
-        bool success = IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
-        require(success, "Transfer failed");
+    modifier onlyActivePosition(address onBehalf) {
+        require(userPositions[msg.sender][onBehalf].isActive, "Position Should Be Active");
+        _;
     }
 
-    function withdrawCollateral(address onBehalf, uint256 amount) public {
+    function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
+        bool success = IERC20(collateralToken).transferFrom(msg.sender, onBehalf, amount);
+        require(success, "Transfer failed");
+
+        userPositions[msg.sender][onBehalf].collateralAmount += amount;
+    }
+
+    function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
+        _accrueInterest();
         IERC20(collateralToken).transfer(msg.sender, amount);
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
     }
 
-    function borrow(uint256 amount) public {
+    function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
+        uint256 allowedBorrowAmount =
+            userPositions[msg.sender][onBehalf].collateralAmount - userPositions[msg.sender][onBehalf].borrowedAmount;
+        require(amount <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
+
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
         require(availableLiquidity >= amount, "Insufficient liquidity to borrow");
 
@@ -98,11 +110,12 @@ contract LendingPool {
 
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
+        userPositions[msg.sender][onBehalf].borrowedAmount += amount;
 
         IERC20(loanToken).transfer(msg.sender, amount);
     }
 
-    function repay(uint256 shares) public {
+    function repayByPosition(address onBehalf, uint256 shares) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
         uint256 amount = (shares * totalBorrowAssets) / totalBorrowShares;
@@ -112,8 +125,10 @@ contract LendingPool {
         bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
         require(success, "Repayment transfer failed");
 
+        userPositions[msg.sender][onBehalf].borrowedAmount -= amount;
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
+        emit Repaid(msg.sender, amount);
     }
 
     function accrueInterest() public {
