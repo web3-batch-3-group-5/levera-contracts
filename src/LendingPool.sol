@@ -3,12 +3,13 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
+import {PriceConverter} from "./PriceConverter.sol";
+
+error ZeroAddress();
+error TransferReverted();
+error NegativeAnswer();
 
 contract LendingPool {
-    error ZeroAddress();
-    error TransferReverted();
-    error NegativeAnswer();
-
     IERC20 public immutable loanToken;
     IERC20 public immutable collateralToken;
     AggregatorV2V3Interface internal loanTokenUsdDataFeed;
@@ -23,32 +24,12 @@ contract LendingPool {
     mapping(address => uint256) public userSupplyShares;
     mapping(address => uint256) public userCollaterals;
 
-    uint256 constant PRECISION = 1e18; // Precision
-    /*
-    mapping(address(positionContract) => Position) positions;
-    */
-
-    constructor(IERC20 _loanToken, IERC20 _collateralToken) {
+    constructor(IERC20 _loanToken, IERC20 _collateralToken, address _loanPriceFeed, address _collateralPriceFeed) {
         loanToken = _loanToken;
         collateralToken = _collateralToken;
+        loanTokenUsdDataFeed = _loanPriceFeed;
+        collateralTokenUsdDataFeed = _collateralPriceFeed;
         lastAccrued = block.timestamp;
-    }
-
-    function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
-        (, int256 answer,,,) = dataFeed.latestRoundData();
-        if (answer < 0) revert NegativeAnswer();
-        return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
-    }
-
-    function getConversionPrice(
-        uint256 amountIn,
-        AggregatorV2V3Interface dataFeedIn,
-        AggregatorV2V3Interface dataFeedOut
-    ) public view returns (uint256 amountOut) {
-        uint256 priceFeedIn = getDataFeedLatestAnswer(dataFeedIn);
-        uint256 priceFeedOut = getDataFeedLatestAnswer(dataFeedOut);
-
-        amountOut = (amountIn * priceFeedIn) / priceFeedOut;
     }
 
     function supply(uint256 amount) public {
