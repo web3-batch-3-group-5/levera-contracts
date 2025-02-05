@@ -19,7 +19,7 @@ deploy: build
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build
-	$(call forge_script,--rpc-url $(RPC_URL) --private-key ${WALLET_PRIVATE_KEY} --etherscan-api-key ${ETHERSCAN_API_KEY} --verify)
+	$(call forge_script,--rpc-url $(RPC_URL) --private-key ${WALLET_PRIVATE_KEY} --verifier ${VERIFIER} --verifier-api-key ${VERIFIER_API_KEY} --verifier-url ${VERIFIER_URL} --chain-id ${CHAIN_ID} --verify)
 
 # Define a target to compile the contracts
 compile:
