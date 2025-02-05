@@ -41,12 +41,21 @@ contract LendingPool {
         lastAccrued = block.timestamp;
     }
 
-    function createPosition() public {
+    function createPosition() public returns (address) {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
             Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
-
         emit PositionCreated(msg.sender, block.timestamp);
+        return address(onBehalf);
+    }
+
+    function getPosition(address onBehalf)
+        public
+        view
+        returns (uint256 collateralAmount, uint256 borrowedAmount, uint256 timestamp, bool isActive)
+    {
+        Position storage position = userPositions[msg.sender][onBehalf];
+        return (position.collateralAmount, position.borrowedAmount, position.timestamp, position.isActive);
     }
 
     function closePosition(address onBehalf) public {
@@ -112,9 +121,12 @@ contract LendingPool {
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
+        uint256 amountInCollateral =
+            PriceConverter.getConversionRate(amount, loanTokenUsdDataFeed, collateralTokenUsdDataFeed);
+
         uint256 allowedBorrowAmount =
             userPositions[msg.sender][onBehalf].collateralAmount - userPositions[msg.sender][onBehalf].borrowedAmount;
-        require(amount <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
+        require(amountInCollateral <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
 
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
         require(availableLiquidity >= amount, "Insufficient liquidity to borrow");
