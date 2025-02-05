@@ -2,16 +2,17 @@
 pragma solidity ^0.8.13;
 
 import {LendingPool} from "./LendingPool.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+error InsufficientCollateral();
+
+struct Position {
+    uint256 collateralAmount;
+    uint256 borrowedAmount;
+    uint256 timestamp;
+    bool isActive;
+}
 
 contract LendingPosition {
-    struct Position {
-        uint256 collateralAmount;
-        uint256 borrowedAmount;
-        uint256 timestamp;
-        bool isActive;
-    }
-
     mapping(address => Position) public userPositions;
     LendingPool public lendingPool;
 
@@ -37,14 +38,9 @@ contract LendingPosition {
         if (!userPositions[msg.sender].isActive) {
             createPosition();
         }
+
         // Ensure position is active before proceeding
-        require(userPositions[msg.sender].isActive, "Posision Doesn't Exist");
-
-        IERC20 collateralTokenAddress = IERC20(address(lendingPool));
-
-        // Transfer collateral
-        bool success = collateralTokenAddress.transferFrom(msg.sender, address(this), amount);
-        require(success, "Token transfer failed");
+        require(userPositions[msg.sender].isActive, "Failed to create position");
 
         // Call LendingPool to supply collateral
         lendingPool.supplyCollateral(amount);
@@ -52,6 +48,10 @@ contract LendingPosition {
     }
 
     function borrowByPosition(uint256 amount) public {
+        // if (
+        //     lendingPool.getConversionRate(amount, loanToken, collateralToken)
+        //         >= userPositions[msg.sender].collateralAmount
+        // ) revert InsufficientCollateral();
         // Ensure position is active before proceeding
         require(userPositions[msg.sender].isActive, "Failed to create position");
 

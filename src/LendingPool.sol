@@ -3,7 +3,11 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
+import {PriceConverter} from "./PriceConverter.sol";
+import {LendingPosition, Position} from "./LendingPosition.sol";
+
+error ZeroAddress();
+error TransferReverted();
 
 contract LendingPool {
     IERC20 public immutable loanToken;
@@ -18,40 +22,27 @@ contract LendingPool {
     uint256 lastAccrued;
 
     mapping(address => uint256) public userSupplyShares;
-    mapping(address => uint256) public userCollaterals;
+    mapping(address => mapping(address => Position)) public userPositions;
 
-    uint256 constant PRECISION = 1e18; // Precision
-
-    constructor(IERC20 _loanToken, IERC20 _collateralToken) {
+    constructor(
+        IERC20 _loanToken,
+        IERC20 _collateralToken,
+        AggregatorV2V3Interface _loanTokenUsdPriceFeed,
+        AggregatorV2V3Interface _collateralTokenUsdPriceFeed
+    ) {
         loanToken = _loanToken;
         collateralToken = _collateralToken;
+        loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
+        collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
         lastAccrued = block.timestamp;
     }
 
-    function getDataFeedLatestAnswer(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
-        (, int256 answer,,,) = dataFeed.latestRoundData();
-        require(answer >= 0, ErrorsLib.NegativeAnswer);
-        return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
-    }
-
-    function getConversionPrice(
-        uint256 amountIn,
-        AggregatorV2V3Interface dataFeedIn,
-        AggregatorV2V3Interface dataFeedOut
-    ) public view returns (uint256 amountOut) {
-        uint256 priceFeedIn = getDataFeedLatestAnswer(dataFeedIn);
-        uint256 priceFeedOut = getDataFeedLatestAnswer(dataFeedOut);
-
-        amountOut = (amountIn * priceFeedIn) / priceFeedOut;
-    }
-
     function supply(uint256 amount) public {
-        require(msg.sender != address(0), ErrorsLib.ZERO_ADDRESS);
-        require(address(loanToken) != address(0), ErrorsLib.ZERO_ADDRESS);
+        if (msg.sender == address(0) || address(loanToken) == address(0)) revert ZeroAddress();
 
         // Transfer USDC from sender to contract
         bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        require(success, ErrorsLib.TRANSFER_REVERTED);
+        if (!success) revert TransferReverted();
 
         _accrueInterest();
 
@@ -85,10 +76,11 @@ contract LendingPool {
         require(success, "Transfer failed");
     }
 
-    function withdrawCollateral(uint256 amount) public {
+    function withdrawCollateral(address onBehalf, uint256 amount) public {
         _accrueInterest();
 
         IERC20(collateralToken).transfer(msg.sender, amount);
+        userPositions[msg.sender][onBehalf].collateralAmount -= amount;
     }
 
     function borrow(uint256 amount) public {
