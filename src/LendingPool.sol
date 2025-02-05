@@ -25,6 +25,8 @@ contract LendingPool {
     mapping(address => mapping(address => Position)) public userPositions;
 
     event Repaid(address indexed user, uint256 amount);
+    event PositionCreated(address indexed user, uint256 timestamp);
+    event PositionClosed(address indexed user);
 
     constructor(
         IERC20 _loanToken,
@@ -37,6 +39,24 @@ contract LendingPool {
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
         lastAccrued = block.timestamp;
+    }
+
+    function createPosition() public {
+        LendingPosition onBehalf = new LendingPosition();
+        userPositions[msg.sender][address(onBehalf)] =
+            Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
+
+        emit PositionCreated(msg.sender, block.timestamp);
+    }
+
+    function closePosition(address onBehalf) public {
+        Position storage position = userPositions[msg.sender][onBehalf];
+        require(position.isActive, "No active position");
+        require(position.borrowedAmount == 0, "Repay loan first");
+        require(position.collateralAmount == 0, "Withdraw collateral first");
+
+        userPositions[msg.sender][onBehalf].isActive = false;
+        emit PositionClosed(msg.sender);
     }
 
     function supply(uint256 amount) public {
@@ -72,7 +92,7 @@ contract LendingPool {
     }
 
     modifier onlyActivePosition(address onBehalf) {
-        require(userPositions[msg.sender][onBehalf].isActive, "Position Should Be Active");
+        require(userPositions[msg.sender][onBehalf].isActive, "User has no active position");
         _;
     }
 

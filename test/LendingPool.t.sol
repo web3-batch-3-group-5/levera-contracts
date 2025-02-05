@@ -77,7 +77,7 @@ contract LendingPoolTest is Test {
 
         // Bob Borrow
         vm.startPrank(bob);
-        LendingPosition onBehalf = new LendingPosition(address(lendingPool));
+        LendingPosition onBehalf = new LendingPosition();
         lendingPool.borrowByPosition(address(onBehalf), borrowAmount);
         vm.stopPrank();
 
@@ -90,5 +90,18 @@ contract LendingPoolTest is Test {
 
         console.log("totalSupplyAssets setelah 1 hari =", lendingPool.totalSupplyAssets());
         console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
+    }
+
+    function expectRevertWithMessage(string memory expectedMessage, function() external fn) internal {
+        vm.expectRevert(bytes(expectedMessage));
+        fn();
+    }
+
+    function test_SupplyCollateral_NoPosition() public {
+        uint256 supplyCollateralAmount = 100_000e6;
+        address randomOnBehalf = address(0x1234567890123456789012345678901234567890);
+
+        vm.expectRevert("User has no active position");
+        lendingPool.supplyCollateralByPosition(randomOnBehalf, supplyCollateralAmount);
     }
 }
