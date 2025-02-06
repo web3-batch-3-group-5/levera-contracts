@@ -39,12 +39,6 @@ contract LendingPoolTest is Test {
         console.log("WBTC/USD Price Feed deployed at:", address(wbtcUsdPriceFeed));
         console.log("Lending Pool deployed at:", address(lendingPool));
 
-        // mockUSDC.mint(address(this), 1000_000e6);
-        // mockWBTC.mint(address(this), 10);
-
-        // mockUSDC.mint(address(lendingPool), 1000_000e6);
-        // mockWBTC.mint(address(lendingPool), 10);
-
         mockUSDC.mint(alice, 100_000e6);
         mockWBTC.mint(alice, 1e6);
 
@@ -106,10 +100,12 @@ contract LendingPoolTest is Test {
 
     // Creating position with zero address as msg.sender
     function test_create_position() public {
+        // Alice create position
         vm.startPrank(alice);
         address onBehalf = address(lendingPool.createPosition());
         (uint256 collateralAmount, uint256 borrowedAmount, uint256 timestamp, bool isActive) =
             lendingPool.getPosition(onBehalf);
+        vm.stopPrank();
 
         assertEq(collateralAmount, 0);
         assertEq(borrowedAmount, 0);
@@ -129,20 +125,162 @@ contract LendingPoolTest is Test {
         lendingPool.supplyCollateralByPosition(randomOnBehalf, supplyCollateralAmount);
     }
 
-    // function test_supply_colateral() public {
-    // uint256 supplyCollateralAmount = 100_000e6;
-    // uint256 borrowAmount = 20_000e6;
+    function test_supply_colateral() public {
+        uint256 supplyCollateralAmount = 1e6;
 
-    // vm.startPrank(alice);
-    // lendingPool.createPosition();
-    // LendingPosition onBehalf = new LendingPosition();
-    // Position storage userPosition = userPositions[msg.sender][address(onBehalf)];
-    // IERC20(mockWBTC).approve(address(onBehalf), supplyCollateralAmount);
+        // Alice create position
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
 
-    // console.log("onbehalf address", address(onBehalf));
-    // console.log("Position status", userPosition.isActive);
-    // // Verify Alice's balance in LendingPool
-    // uint256 aliceShares = lendingPool.userSupplyShares(alice);
-    // assertEq(aliceShares, initialDeposit, "Alice should receive correct shares");
-    // }
+        // Alice supply colleteral
+        lendingPool.supplyCollateralByPosition(address(onBehalf), supplyCollateralAmount);
+
+        (uint256 collateralAmount, uint256 borrowedAmount, uint256 timestamp, bool isActive) =
+            lendingPool.getPosition(onBehalf);
+
+        // Verify Alice's supply collateral
+        assertEq(collateralAmount, supplyCollateralAmount, "Total Supply Collateral Should Be Update");
+
+        console.log("collateral amount", collateralAmount);
+    }
+
+    function test_borrow_by_position() public {
+        uint256 supplyCollateralAmount = 1e6; // in wbtc
+        uint256 borrowAmount = 10e6; // in usdc
+
+        // Bob supply to lending pool
+        uint256 bobDeposit = 1000e6;
+        vm.startPrank(bob);
+        IERC20(mockUSDC).approve(address(lendingPool), bobDeposit);
+
+        lendingPool.supply(bobDeposit);
+        vm.stopPrank();
+
+        // Alice create position
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
+
+        // Check Alice balance Before
+        uint256 aliceBalanceBefore = IERC20(mockUSDC).balanceOf(alice);
+        assertEq(aliceBalanceBefore, 100_000e6, "Alice Balance Initial");
+
+        // Alice supply collateral
+        lendingPool.supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+
+        // Get initial position data
+        (uint256 initialCollateral, uint256 initialBorrowed,,) = lendingPool.getPosition(onBehalf);
+
+        // Ensure collateral was supplied correctly
+        assertEq(initialCollateral, supplyCollateralAmount, "Collateral amount should be updated");
+        assertEq(initialBorrowed, 0, "Initial borrowed amount should be zero");
+
+        // Alice attempts to borrow
+        lendingPool.borrowByPosition(onBehalf, borrowAmount);
+
+        // Get updated position data
+        (uint256 finalCollateral, uint256 finalBorrowed,,) = lendingPool.getPosition(onBehalf);
+
+        // Verify borrow updates
+        assertEq(finalCollateral, supplyCollateralAmount, "Collateral should remain the same");
+        assertEq(finalBorrowed, borrowAmount, "Borrowed amount should be updated");
+
+        // Check token balance
+        uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
+        assertEq(aliceBalanceAfter, aliceBalanceBefore += borrowAmount, "Alice should receive the borrowed tokens");
+
+        console.log("Alice successfully borrowed", aliceBalanceBefore += borrowAmount);
+    }
+
+    function test_borrow_exceeds_collateral() public {
+        uint256 supplyCollateralAmount = 1e4;
+        uint256 borrowAmount = 2000e6; // More than allowed
+
+        // Bob supply to lending pool
+        uint256 bobDeposit = 3000e6;
+        vm.startPrank(bob);
+        IERC20(mockUSDC).approve(address(lendingPool), bobDeposit);
+
+        lendingPool.supply(bobDeposit);
+        vm.stopPrank();
+
+        // Alice create position
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
+
+        // Alice supply collateral
+        lendingPool.supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+
+        // Expect revert due to insufficient collateral
+        vm.expectRevert("Borrow amount exceeds available collateral");
+        lendingPool.borrowByPosition(onBehalf, borrowAmount);
+    }
+
+    function test_borrow_insuficientLiquid_collateral() public {
+        uint256 supplyCollateralAmount = 1e6;
+        uint256 borrowAmount = 100e6;
+
+        // Bob supply to lending pool
+        uint256 bobDeposit = 30e6; // less than borrowed amount
+        vm.startPrank(bob);
+        IERC20(mockUSDC).approve(address(lendingPool), bobDeposit);
+
+        lendingPool.supply(bobDeposit);
+        vm.stopPrank();
+
+        // Alice create position
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
+
+        // Alice supply collateral
+        lendingPool.supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+
+        // Expect revert due to insufficient collateral
+        vm.expectRevert("Insufficient liquidity to borrow");
+        lendingPool.borrowByPosition(onBehalf, borrowAmount);
+    }
+
+    function test_repay_by_position() public {
+        uint256 supplyCollateralAmount = 1e6;
+        uint256 borrowAmount = 5e5;
+        uint256 repayShares = 2e5;
+
+        // Bob supply to lending pool
+        uint256 bobDeposit = 30e6; // less than borrowed amount
+        vm.startPrank(bob);
+        IERC20(mockUSDC).approve(address(lendingPool), bobDeposit);
+
+        lendingPool.supply(bobDeposit);
+        vm.stopPrank();
+
+        // Alice create position
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
+
+        // Alice supplies collateral
+        lendingPool.supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+
+        // Alice borrows funds
+        lendingPool.borrowByPosition(onBehalf, borrowAmount);
+
+        // Get borrowed amount before repayment
+        (, uint256 borrowedBefore,,) = lendingPool.getPosition(onBehalf);
+        assertEq(borrowedBefore, borrowAmount, "Borrowed amount should be updated");
+
+        // Alice approves repayment
+        IERC20(mockUSDC).approve(address(lendingPool), repayShares);
+
+        // Alice repays part of the loan
+        lendingPool.repayByPosition(onBehalf, repayShares);
+
+        // Get borrowed amount after repayment
+        (, uint256 borrowedAfter,,) = lendingPool.getPosition(onBehalf);
+        assertEq(borrowedAfter, borrowedBefore - repayShares, "Borrowed amount should decrease after repayment");
+
+        console.log("Alice successfully repaid", repayShares);
+    }
 }
