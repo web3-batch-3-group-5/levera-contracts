@@ -22,6 +22,15 @@ contract LendingPoolFactory {
 
     mapping(bytes32 => PoolParams) public lendingPools;
 
+    event AllLendingPool(
+        address loanToken,
+        address collateralToken,
+        address loanTokenUsdDataFeed,
+        address collateralTokenUsdDataFeed,
+        address lendingPool,
+        uint256 timestamp
+    );
+
     function createLendingPool(BasePoolParams memory params) external {
         bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
         if (lendingPools[id].lendingPool != address(0)) revert PoolAlreadyCreated();
@@ -33,5 +42,14 @@ contract LendingPoolFactory {
             AggregatorV2V3Interface(params.collateralTokenUsdDataFeed)
         );
         lendingPools[id] = PoolParams(params, address(lendingPool));
+
+        emit AllLendingPool(
+            params.loanToken,
+            params.collateralToken,
+            params.loanTokenUsdDataFeed,
+            params.collateralTokenUsdDataFeed,
+            address(lendingPool),
+            block.timestamp
+        );
     }
 }

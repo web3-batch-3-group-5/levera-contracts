@@ -29,7 +29,7 @@ contract LendingPool {
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
 
-    event Repaid(
+    event UserPosition(
         address indexed caller,
         address indexed onBehalf,
         uint256 collateralAmount,
@@ -37,23 +37,7 @@ contract LendingPool {
         uint256 timestamp,
         bool isActive
     );
-    event PositionCreated(
-        address indexed caller,
-        address indexed onBehalf,
-        uint256 collateralAmount,
-        uint256 borrowAmount,
-        uint256 timestamp,
-        bool isActive
-    );
-    event PositionClosed(
-        address indexed caller,
-        address indexed onBehalf,
-        uint256 collateralAmount,
-        uint256 borrowAmount,
-        uint256 timestamp,
-        bool isActive
-    );
-    event Supply(address indexed caller, uint256 supplyShare);
+    event UserSupplyShare(address indexed caller, uint256 supplyShare, uint256 timestamp);
 
     constructor(
         IERC20 _loanToken,
@@ -77,7 +61,8 @@ contract LendingPool {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
             Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
-        emit PositionCreated(msg.sender, address(onBehalf), 0, 0, block.timestamp, true);
+
+        _updatePosition(address(onBehalf));
         return address(onBehalf);
     }
 
@@ -95,7 +80,8 @@ contract LendingPool {
         if (position.borrowedAmount != 0 || position.collateralAmount != 0) revert NonZeroActivePosition();
 
         userPositions[msg.sender][onBehalf].isActive = false;
-        emit PositionClosed(msg.sender, onBehalf, 0, 0, block.timestamp, false);
+
+        _updatePosition(onBehalf);
     }
 
     function supply(uint256 amount) public {
@@ -117,18 +103,19 @@ contract LendingPool {
         totalSupplyAssets += amount;
         totalSupplyShares += shares;
         userSupplyShares[msg.sender] += shares;
-        emit Supply(msg.sender, userSupplyShares[msg.sender]);
+        emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
     }
 
     function withdraw(uint256 shares) public {
         _accrueInterest();
 
         uint256 amount = (shares * totalSupplyAssets) / totalSupplyShares;
+        IERC20(loanToken).transfer(msg.sender, amount);
 
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
-        IERC20(loanToken).transfer(msg.sender, amount);
+        emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -138,12 +125,16 @@ contract LendingPool {
         if (!success) revert TransferReverted();
 
         userPositions[msg.sender][onBehalf].collateralAmount += amount;
+
+        _updatePosition(onBehalf);
     }
 
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
         IERC20(collateralToken).transfer(msg.sender, amount);
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
+
+        _updatePosition(onBehalf);
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -187,14 +178,18 @@ contract LendingPool {
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
 
-        Position memory position = userPositions[msg.sender][onBehalf];
-        emit Repaid(
-            msg.sender, address(onBehalf), position.collateralAmount, position.borrowedAmount, block.timestamp, true
-        );
+        _updatePosition(onBehalf);
     }
 
     function accrueInterest() public {
         _accrueInterest();
+    }
+
+    function _updatePosition(address onBehalf) internal {
+        Position storage position = userPositions[msg.sender][onBehalf];
+        emit UserPosition(
+            msg.sender, onBehalf, position.collateralAmount, position.borrowedAmount, block.timestamp, position.isActive
+        );
     }
 
     function _accrueInterest() internal {
