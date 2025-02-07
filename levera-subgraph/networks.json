@@ -1,8 +1,0 @@
-{
-  "arbitrum-sepolia": {
-    "LendingPool": {
-      "address": "0x8F886450A284d2aC63483645A5Fb40c493023B99",
-      "startBlock": 121697313
-    }
-  }
-}
