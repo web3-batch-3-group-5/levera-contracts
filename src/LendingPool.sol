@@ -6,8 +6,13 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PriceConverter} from "./PriceConverter.sol";
 import {LendingPosition, Position} from "./LendingPosition.sol";
 
-error ZeroAddress();
+error InsufficientCollateral();
+error InsufficientLiquidity();
+error InvalidAmount();
+error NoActivePosition();
+error NonZeroActivePosition();
 error TransferReverted();
+error ZeroAddress();
 
 contract LendingPool {
     IERC20 public immutable loanToken;
@@ -41,19 +46,31 @@ contract LendingPool {
         lastAccrued = block.timestamp;
     }
 
-    function createPosition() public {
+    modifier onlyActivePosition(address onBehalf) {
+        if (!userPositions[msg.sender][onBehalf].isActive) revert NoActivePosition();
+        _;
+    }
+
+    function createPosition() public returns (address) {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
             Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
-
         emit PositionCreated(msg.sender, block.timestamp);
+        return address(onBehalf);
     }
 
-    function closePosition(address onBehalf) public {
+    function getPosition(address onBehalf)
+        public
+        view
+        returns (uint256 collateralAmount, uint256 borrowedAmount, uint256 timestamp, bool isActive)
+    {
         Position storage position = userPositions[msg.sender][onBehalf];
-        require(position.isActive, "No active position");
-        require(position.borrowedAmount == 0, "Repay loan first");
-        require(position.collateralAmount == 0, "Withdraw collateral first");
+        return (position.collateralAmount, position.borrowedAmount, position.timestamp, position.isActive);
+    }
+
+    function closePosition(address onBehalf) public onlyActivePosition(onBehalf) {
+        Position storage position = userPositions[msg.sender][onBehalf];
+        if (position.borrowedAmount != 0 || position.collateralAmount != 0) revert NonZeroActivePosition();
 
         userPositions[msg.sender][onBehalf].isActive = false;
         emit PositionClosed(msg.sender);
@@ -91,16 +108,11 @@ contract LendingPool {
         IERC20(loanToken).transfer(msg.sender, amount);
     }
 
-    modifier onlyActivePosition(address onBehalf) {
-        require(userPositions[msg.sender][onBehalf].isActive, "User has no active position");
-        _;
-    }
-
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
         bool success = IERC20(collateralToken).transferFrom(msg.sender, onBehalf, amount);
-        require(success, "Transfer failed");
+        if (!success) revert TransferReverted();
 
         userPositions[msg.sender][onBehalf].collateralAmount += amount;
     }
@@ -112,12 +124,15 @@ contract LendingPool {
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        uint256 allowedBorrowAmount =
-            userPositions[msg.sender][onBehalf].collateralAmount - userPositions[msg.sender][onBehalf].borrowedAmount;
-        require(amount <= allowedBorrowAmount, "Borrow amount exceeds available collateral");
+        uint256 collateral = PriceConverter.getConversionRate(
+            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
+        );
+
+        uint256 allowedBorrowAmount = collateral - userPositions[msg.sender][onBehalf].borrowedAmount;
+        if (allowedBorrowAmount < amount) revert InsufficientCollateral();
 
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
-        require(availableLiquidity >= amount, "Insufficient liquidity to borrow");
+        if (availableLiquidity < amount) revert InsufficientLiquidity();
 
         _accrueInterest();
 
@@ -139,11 +154,11 @@ contract LendingPool {
         _accrueInterest();
 
         uint256 amount = (shares * totalBorrowAssets) / totalBorrowShares;
-        require(amount > 0, "Invalid repayment amount");
+        if (amount <= 0) revert InvalidAmount();
 
         // Transfer funds from user
         bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        require(success, "Repayment transfer failed");
+        if (!success) revert TransferReverted();
 
         userPositions[msg.sender][onBehalf].borrowedAmount -= amount;
         totalBorrowAssets -= amount;

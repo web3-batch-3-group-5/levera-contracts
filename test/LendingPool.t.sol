@@ -6,7 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {LendingPool} from "../src/LendingPool.sol";
-import {LendingPosition} from "../src/LendingPosition.sol";
+import {LendingPosition, Position} from "../src/LendingPosition.sol";
+import {PriceConverter} from "../src/PriceConverter.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -19,6 +20,8 @@ contract LendingPoolTest is Test {
     int64 public constant USDC_USD_PRICE = 1e8;
     int64 public constant WBTC_USD_PRICE = 1e13;
 
+    mapping(address => mapping(address => Position)) public userPositions;
+
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
@@ -30,28 +33,24 @@ contract LendingPoolTest is Test {
 
         lendingPool = new LendingPool(mockUSDC, mockWBTC, usdcUsdPriceFeed, wbtcUsdPriceFeed);
 
+        console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
         console.log("Mock WBTC deployed at:", address(mockWBTC));
         console.log("USDC/USD Price Feed deployed at:", address(usdcUsdPriceFeed));
         console.log("WBTC/USD Price Feed deployed at:", address(wbtcUsdPriceFeed));
         console.log("Lending Pool deployed at:", address(lendingPool));
-
-        // mockUSDC.mint(address(this), 1000_000e6);
-        // mockWBTC.mint(address(this), 10);
-
-        // mockUSDC.mint(address(lendingPool), 1000_000e6);
-        // mockWBTC.mint(address(lendingPool), 10);
+        console.log("==============================================================");
 
         mockUSDC.mint(alice, 100_000e6);
-        mockWBTC.mint(alice, 1);
-
+        mockWBTC.mint(alice, 1e6);
         mockUSDC.mint(bob, 100_000e6);
-        mockWBTC.mint(bob, 2);
+        mockWBTC.mint(bob, 2e6);
     }
 
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;
-        uint256 borrowAmount = 20_000e6;
+        uint256 bobBorrowAmount = 20_000e6;
+        uint256 bobCollateralAmount = 1e6;
 
         // Alice deposit
         vm.startPrank(alice);
@@ -77,8 +76,16 @@ contract LendingPoolTest is Test {
 
         // Bob Borrow
         vm.startPrank(bob);
-        LendingPosition onBehalf = new LendingPosition();
-        lendingPool.borrowByPosition(address(onBehalf), borrowAmount);
+        IERC20(mockWBTC).approve(address(lendingPool), bobCollateralAmount);
+        address onBehalf = address(lendingPool.createPosition());
+        lendingPool.supplyCollateralByPosition(onBehalf, bobCollateralAmount);
+
+        uint256 bobCollateralInUsd =
+            PriceConverter.getConversionRate(bobCollateralAmount, wbtcUsdPriceFeed, usdcUsdPriceFeed);
+
+        console.log("Bob's Collateral Amount", bobCollateralInUsd);
+
+        lendingPool.borrowByPosition(address(onBehalf), bobBorrowAmount);
         vm.stopPrank();
 
         console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());
@@ -90,6 +97,17 @@ contract LendingPoolTest is Test {
 
         console.log("totalSupplyAssets setelah 1 hari =", lendingPool.totalSupplyAssets());
         console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
+    }
+
+    // Creating position with zero address as msg.sender
+    function test_create_position() public {
+        vm.startPrank(alice);
+        address onBehalf = address(lendingPool.createPosition());
+        (uint256 collateralAmount, uint256 borrowedAmount,, bool isActive) = lendingPool.getPosition(onBehalf);
+
+        assertEq(collateralAmount, 0);
+        assertEq(borrowedAmount, 0);
+        assertTrue(isActive);
     }
 
     function expectRevertWithMessage(string memory expectedMessage, function() external fn) internal {
@@ -104,4 +122,21 @@ contract LendingPoolTest is Test {
         vm.expectRevert("User has no active position");
         lendingPool.supplyCollateralByPosition(randomOnBehalf, supplyCollateralAmount);
     }
+
+    // function test_supply_colateral() public {
+    // uint256 supplyCollateralAmount = 100_000e6;
+    // uint256 bobBorrowAmount = 20_000e6;
+
+    // vm.startPrank(alice);
+    // lendingPool.createPosition();
+    // LendingPosition onBehalf = new LendingPosition();
+    // Position storage userPosition = userPositions[msg.sender][address(onBehalf)];
+    // IERC20(mockWBTC).approve(address(onBehalf), supplyCollateralAmount);
+
+    // console.log("onbehalf address", address(onBehalf));
+    // console.log("Position status", userPosition.isActive);
+    // // Verify Alice's balance in LendingPool
+    // uint256 aliceShares = lendingPool.userSupplyShares(alice);
+    // assertEq(aliceShares, initialDeposit, "Alice should receive correct shares");
+    // }
 }
