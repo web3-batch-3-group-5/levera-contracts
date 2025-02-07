@@ -17,9 +17,9 @@ struct PoolParams {
     address lendingPool;
 }
 
-error PoolAlreadyCreated();
-
 contract LendingPoolFactory {
+    error PoolAlreadyCreated();
+
     mapping(bytes32 => PoolParams) public lendingPools;
 
     function createLendingPool(BasePoolParams memory params) external {

@@ -6,15 +6,15 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PriceConverter} from "./PriceConverter.sol";
 import {LendingPosition, Position} from "./LendingPosition.sol";
 
-error InsufficientCollateral();
-error InsufficientLiquidity();
-error InvalidAmount();
-error NoActivePosition();
-error NonZeroActivePosition();
-error TransferReverted();
-error ZeroAddress();
-
 contract LendingPool {
+    error InsufficientCollateral();
+    error InsufficientLiquidity();
+    error InvalidAmount();
+    error NoActivePosition();
+    error NonZeroActivePosition();
+    error TransferReverted();
+    error ZeroAddress();
+
     IERC20 public immutable loanToken;
     IERC20 public immutable collateralToken;
     AggregatorV2V3Interface internal loanTokenUsdDataFeed;
@@ -29,9 +29,31 @@ contract LendingPool {
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
 
-    event Repaid(address indexed user, uint256 amount);
-    event PositionCreated(address indexed user, uint256 timestamp);
-    event PositionClosed(address indexed user);
+    event Repaid(
+        address indexed caller,
+        address indexed onBehalf,
+        uint256 collateralAmount,
+        uint256 borrowAmount,
+        uint256 timestamp,
+        bool isActive
+    );
+    event PositionCreated(
+        address indexed caller,
+        address indexed onBehalf,
+        uint256 collateralAmount,
+        uint256 borrowAmount,
+        uint256 timestamp,
+        bool isActive
+    );
+    event PositionClosed(
+        address indexed caller,
+        address indexed onBehalf,
+        uint256 collateralAmount,
+        uint256 borrowAmount,
+        uint256 timestamp,
+        bool isActive
+    );
+    event Supply(address indexed caller);
 
     constructor(
         IERC20 _loanToken,
@@ -55,7 +77,7 @@ contract LendingPool {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
             Position({collateralAmount: 0, borrowedAmount: 0, timestamp: block.timestamp, isActive: true});
-        emit PositionCreated(msg.sender, block.timestamp);
+        emit PositionCreated(msg.sender, address(onBehalf), 0, 0, block.timestamp, true);
         return address(onBehalf);
     }
 
@@ -73,7 +95,7 @@ contract LendingPool {
         if (position.borrowedAmount != 0 || position.collateralAmount != 0) revert NonZeroActivePosition();
 
         userPositions[msg.sender][onBehalf].isActive = false;
-        emit PositionClosed(msg.sender);
+        emit PositionClosed(msg.sender, onBehalf, 0, 0, block.timestamp, false);
     }
 
     function supply(uint256 amount) public {
@@ -163,7 +185,11 @@ contract LendingPool {
         userPositions[msg.sender][onBehalf].borrowedAmount -= amount;
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
-        emit Repaid(msg.sender, amount);
+
+        Position memory position = userPositions[msg.sender][onBehalf];
+        emit Repaid(
+            msg.sender, address(onBehalf), position.collateralAmount, position.borrowedAmount, block.timestamp, true
+        );
     }
 
     function accrueInterest() public {
