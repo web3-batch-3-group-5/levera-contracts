@@ -53,7 +53,7 @@ contract LendingPool {
         uint256 timestamp,
         bool isActive
     );
-    event Supply(address indexed caller);
+    event Supply(address indexed caller, uint256 supplyShare);
 
     constructor(
         IERC20 _loanToken,
@@ -117,6 +117,7 @@ contract LendingPool {
         totalSupplyAssets += amount;
         totalSupplyShares += shares;
         userSupplyShares[msg.sender] += shares;
+        emit Supply(msg.sender, userSupplyShares[msg.sender]);
     }
 
     function withdraw(uint256 shares) public {

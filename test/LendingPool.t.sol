@@ -80,10 +80,10 @@ contract LendingPoolTest is Test {
         address onBehalf = address(lendingPool.createPosition());
         lendingPool.supplyCollateralByPosition(onBehalf, bobCollateralAmount);
 
-        uint256 bobCollateralInUsd =
+        uint256 collateralAmount =
             PriceConverter.getConversionRate(bobCollateralAmount, wbtcUsdPriceFeed, usdcUsdPriceFeed);
 
-        console.log("Bob's Collateral Amount", bobCollateralInUsd);
+        console.log("Bob's Collateral Amount", collateralAmount);
 
         lendingPool.borrowByPosition(address(onBehalf), bobBorrowAmount);
         vm.stopPrank();
