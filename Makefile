@@ -46,9 +46,10 @@ script-deploy-verify: build
 
 # Define a pre-existing contract address to verify deployment using the specified network
 verify:
-	forge verify-contract ${address} --verifier ${VERIFIER} \
+	forge verify-contract ${address} ${contract} --rpc-url $(RPC_URL) \
+		--verifier ${VERIFIER} \
 		--verifier-api-key ${VERIFIER_API_KEY} \
-		--verifier-url ${VERIFIER_URL}
+		--verifier-url ${VERIFIER_URL} \
 		--chain-id ${CHAIN_ID}
 
 # Define a target to compile the contracts

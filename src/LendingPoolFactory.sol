@@ -64,7 +64,7 @@ contract LendingPoolFactory {
         _;
     }
 
-    function createLendingPool(BasePoolParams memory params) external returns (address) {
+    function createLendingPool(BasePoolParams calldata params) external returns (address) {
         bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
@@ -100,7 +100,7 @@ contract LendingPoolFactory {
         _indexLendingPool(_lendingPool);
     }
 
-    function storeLendingPool(BasePoolParams memory params, address _lendingPool) public {
+    function storeLendingPool(BasePoolParams calldata params, address _lendingPool) public {
         bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
@@ -150,16 +150,16 @@ contract LendingPoolFactory {
         );
     }
 
-    function getTokenName(address token) public view returns (string memory) {
-        try ERC20(token).name() returns (string memory tokenName) {
+    function getTokenName(address _token) public view returns (string memory) {
+        try ERC20(_token).name() returns (string memory tokenName) {
             return tokenName;
         } catch {
             return "Unknown"; // Fallback name if `name()` is not implemented
         }
     }
 
-    function getTokenSymbol(address token) public view returns (string memory) {
-        try ERC20(token).symbol() returns (string memory tokenSymbol) {
+    function getTokenSymbol(address _token) public view returns (string memory) {
+        try ERC20(_token).symbol() returns (string memory tokenSymbol) {
             return tokenSymbol;
         } catch {
             return "UNKNOWN"; // Fallback name if `symbol()` is not implemented
