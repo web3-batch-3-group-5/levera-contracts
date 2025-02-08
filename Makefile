@@ -2,7 +2,7 @@ include .env
 
 # Default values
 RPC_URL := https://${NETWORK}.g.alchemy.com/v2/${ALCHEMY_API_KEY}
-DEF_SCRIPT_FILE := script/LendingPoolDeploy.s.sol
+DEF_SCRIPT_FILE := script/Deploy.s.sol
 
 .PHONY: compile deploy deploy-verify script-deploy script-deploy-verify test verify
 
@@ -27,10 +27,22 @@ script-deploy: build
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build
-	$(call forge_create,$(contract),--rpc-url $(RPC_URL) --private-key ${WALLET_PRIVATE_KEY} --verifier ${VERIFIER} --verifier-api-key ${VERIFIER_API_KEY} --verifier-url ${VERIFIER_URL} --chain-id ${CHAIN_ID} --verify)
+	$(call forge_create,$(contract),--rpc-url $(RPC_URL) \
+		--private-key ${WALLET_PRIVATE_KEY} \
+		--verifier ${VERIFIER} \
+		--verifier-api-key ${VERIFIER_API_KEY} \
+		--verifier-url ${VERIFIER_URL} \
+		--chain-id ${CHAIN_ID} \
+		--verify)
 
 script-deploy-verify: build
-	$(call forge_script,$(DEF_SCRIPT_FILE),--rpc-url $(RPC_URL) --private-key ${WALLET_PRIVATE_KEY} --verifier ${VERIFIER} --verifier-api-key ${VERIFIER_API_KEY} --verifier-url ${VERIFIER_URL} --chain-id ${CHAIN_ID} --verify)
+	$(call forge_script,$(DEF_SCRIPT_FILE),--rpc-url $(RPC_URL) \
+	--private-key ${WALLET_PRIVATE_KEY} \
+	--verifier ${VERIFIER} \
+	--verifier-api-key ${VERIFIER_API_KEY} \
+	--verifier-url ${VERIFIER_URL} \
+	--chain-id ${CHAIN_ID} \
+	--verify)
 
 # Define a pre-existing contract address to verify deployment using the specified network
 verify:

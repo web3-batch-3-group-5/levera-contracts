@@ -31,9 +31,9 @@ contract LendingPoolFactory {
     error Unauthorized();
 
     address public owner;
-    mapping(bytes32 => address) public activeLendingPoolIds; // stored active lending pool address
-    mapping(address => PoolParams) public lendingPools; // stored all created LendingPool contract information
-    address[] public lendingPoolAddresses; // stored all created LendingPool contract address
+    mapping(bytes32 => address) public lendingPoolIds;
+    mapping(address => PoolParams) public lendingPools;
+    address[] public createdLendingPools;
 
     event AllLendingPool(
         address loanToken,
@@ -66,7 +66,7 @@ contract LendingPoolFactory {
 
     function createLendingPool(BasePoolParams memory params) external returns (address) {
         bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
-        if (activeLendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
+        if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
         LendingPool lendingPool = new LendingPool(
             IERC20(params.loanToken),
@@ -74,8 +74,8 @@ contract LendingPoolFactory {
             AggregatorV2V3Interface(params.loanTokenUsdDataFeed),
             AggregatorV2V3Interface(params.collateralTokenUsdDataFeed)
         );
-        activeLendingPoolIds[id] = address(lendingPool);
-        lendingPoolAddresses.push(address(lendingPool)); // stored all created LendingPool contract
+        lendingPoolIds[id] = address(lendingPool);
+        createdLendingPools.push(address(lendingPool));
 
         string memory loanTokenName = getTokenName(params.loanToken);
         string memory collateralTokenName = getTokenName(params.collateralToken);
@@ -91,7 +91,35 @@ contract LendingPoolFactory {
         return address(lendingPool);
     }
 
-    function removeLendingPool(address _lendingPool) public isExist(_lendingPool) canUpdate(_lendingPool) {
+    function updateLendingPoolStatus(address _lendingPool, bool _status)
+        public
+        isExist(_lendingPool)
+        canUpdate(_lendingPool)
+    {
+        lendingPools[_lendingPool].isActive = _status;
+        _indexLendingPool(_lendingPool);
+    }
+
+    function storeLendingPool(BasePoolParams memory params, address _lendingPool) public {
+        bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
+        if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
+
+        string memory loanTokenName = getTokenName(params.loanToken);
+        string memory collateralTokenName = getTokenName(params.collateralToken);
+        string memory loanTokenSymbol = getTokenSymbol(params.loanToken);
+        string memory collateralTokenSymbol = getTokenSymbol(params.collateralToken);
+
+        lendingPoolIds[id] = _lendingPool;
+        lendingPools[_lendingPool] = PoolParams(
+            params, loanTokenName, collateralTokenName, loanTokenSymbol, collateralTokenSymbol, msg.sender, true
+        );
+
+        _indexLendingPool(_lendingPool);
+    }
+
+    function discardLendingPool(address _lendingPool) public isExist(_lendingPool) canUpdate(_lendingPool) {
+        updateLendingPoolStatus(_lendingPool, false);
+
         bytes32 id = keccak256(
             abi.encode(
                 lendingPools[_lendingPool].basePoolParams.loanToken,
@@ -99,9 +127,8 @@ contract LendingPoolFactory {
             )
         );
 
-        delete activeLendingPoolIds[id];
-        lendingPools[_lendingPool].isActive = false;
-        _indexLendingPool(_lendingPool);
+        delete lendingPoolIds[id];
+        delete lendingPools[_lendingPool];
     }
 
     function _indexLendingPool(address _lendingPool) internal isExist(_lendingPool) {
