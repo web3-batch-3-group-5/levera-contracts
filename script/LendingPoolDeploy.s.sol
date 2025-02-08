@@ -5,8 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {MockUSDC} from "../src/mocks/MockUSDC.sol";
-import {MockWBTC} from "../src/mocks/MockWBTC.sol";
+import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 
 contract LendingPoolDeploy is Script {
@@ -22,8 +21,8 @@ contract LendingPoolDeploy is Script {
         // Deploy the mock USDC and WBTC contract
         // MockV3Aggregator usdcAggregator = new MockV3Aggregator(DECIMALS, USDC_USD_PRICE);
         // MockV3Aggregator wbtcAggregator = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
-        // IERC20 mockUSDC = new MockUSDC();
-        // IERC20 mockWBTC = new MockWBTC();
+        // IERC20 mockUSDC = new MockERC20("usdc", "USDC");
+        // IERC20 mockWBTC = new MockERC20("wbtc", "WBTC");
 
         // Sepolia Testnet
         // MockV3Aggregator usdcAggregator = MockV3Aggregator(0x43E328A3CB461426F26FBa0eca129FBb990cbC97);
