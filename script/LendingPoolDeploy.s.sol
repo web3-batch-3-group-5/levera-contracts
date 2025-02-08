@@ -9,7 +9,7 @@ import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockWBTC} from "../src/mocks/MockWBTC.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 
-contract LendingScript is Script {
+contract LendingPoolDeploy is Script {
     LendingPool public lendingPool;
 
     uint8 public DECIMALS = 8;
