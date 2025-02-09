@@ -9,11 +9,13 @@ import {LendingPosition, Position} from "./LendingPosition.sol";
 contract LendingPool {
     error InsufficientCollateral();
     error InsufficientLiquidity();
+    error InsufficientShares();
     error InvalidAmount();
     error NoActivePosition();
     error NonZeroActivePosition();
     error TransferReverted();
     error ZeroAddress();
+    error ZeroAmount();
 
     IERC20 public immutable loanToken;
     IERC20 public immutable collateralToken;
@@ -25,6 +27,7 @@ contract LendingPool {
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
     uint256 lastAccrued;
+    uint256 ltv = 70;
 
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
@@ -85,11 +88,8 @@ contract LendingPool {
     }
 
     function supply(uint256 amount) public {
+        if (amount == 0) revert ZeroAmount();
         if (msg.sender == address(0) || address(loanToken) == address(0)) revert ZeroAddress();
-
-        // Transfer USDC from sender to contract
-        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TransferReverted();
 
         _accrueInterest();
 
@@ -103,25 +103,35 @@ contract LendingPool {
         totalSupplyAssets += amount;
         totalSupplyShares += shares;
         userSupplyShares[msg.sender] += shares;
+
+        // Transfer USDC from sender to contract
+        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TransferReverted();
+
         emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
     }
 
     function withdraw(uint256 shares) public {
+        if (shares == 0) revert ZeroAmount();
+        if (shares > userSupplyShares[msg.sender]) revert InsufficientShares();
+
         _accrueInterest();
 
         uint256 amount = (shares * totalSupplyAssets) / totalSupplyShares;
-        IERC20(loanToken).transfer(msg.sender, amount);
 
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
+
+        IERC20(loanToken).transfer(msg.sender, amount);
+
         emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
-        bool success = IERC20(collateralToken).transferFrom(msg.sender, onBehalf, amount);
+        bool success = IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
         if (!success) revert TransferReverted();
 
         userPositions[msg.sender][onBehalf].collateralAmount += amount;
@@ -130,6 +140,7 @@ contract LendingPool {
     }
 
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
+        // to do check if widraw amount allowed
         _accrueInterest();
         IERC20(collateralToken).transfer(msg.sender, amount);
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
@@ -138,13 +149,6 @@ contract LendingPool {
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        uint256 collateral = PriceConverter.getConversionRate(
-            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
-        );
-
-        uint256 allowedBorrowAmount = collateral - userPositions[msg.sender][onBehalf].borrowedAmount;
-        if (allowedBorrowAmount < amount) revert InsufficientCollateral();
-
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
         if (availableLiquidity < amount) revert InsufficientLiquidity();
 
@@ -161,6 +165,7 @@ contract LendingPool {
         totalBorrowShares += shares;
         userPositions[msg.sender][onBehalf].borrowedAmount += amount;
 
+        _isHealty(onBehalf);
         IERC20(loanToken).transfer(msg.sender, amount);
     }
 
@@ -170,13 +175,13 @@ contract LendingPool {
         uint256 amount = (shares * totalBorrowAssets) / totalBorrowShares;
         if (amount <= 0) revert InvalidAmount();
 
-        // Transfer funds from user
-        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TransferReverted();
-
         userPositions[msg.sender][onBehalf].borrowedAmount -= amount;
         totalBorrowAssets -= amount;
         totalBorrowShares -= shares;
+
+        // Transfer funds from user
+        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TransferReverted();
 
         _updatePosition(onBehalf);
     }
@@ -204,5 +209,15 @@ contract LendingPool {
         totalSupplyAssets += interest;
 
         lastAccrued = block.timestamp;
+    }
+
+    function _isHealty(address onBehalf) internal {
+        uint256 borrowed = userPositions[msg.sender][onBehalf].borrowedAmount;
+        uint256 collateral = PriceConverter.getConversionRate(
+            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
+        );
+
+        uint256 allowedBorrowAmount = (collateral - userPositions[msg.sender][onBehalf].borrowedAmount) * ltv / 100;
+        if (borrowed > allowedBorrowAmount) revert InsufficientCollateral();
     }
 }
