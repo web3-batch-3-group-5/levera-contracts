@@ -8,10 +8,4 @@ remappings = [
   "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/"
 ]
 
-# TODO @Hana: Find a way to forge create without creating libraries mapping
-# Link the deployed PriceConverter library
-libraries = [
-  "src/PriceConverter.sol:PriceConverter:0xef9884a2295ce317a96cf8cf79aad034586332f7"
-]
-
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
