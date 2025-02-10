@@ -105,6 +105,7 @@ contract LendingPool {
         totalSupplyShares += shares;
         userSupplyShares[msg.sender] += shares;
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
+        emit EventLib.Supply(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
 
     function withdraw(uint256 shares) public {
@@ -117,6 +118,7 @@ contract LendingPool {
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
+        emit EventLib.Withdraw(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -128,6 +130,9 @@ contract LendingPool {
         userPositions[msg.sender][onBehalf].collateralAmount += amount;
 
         _updatePosition(onBehalf);
+        emit EventLib.SupplyCollateralByPosition(
+            address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]
+        );
     }
 
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -136,6 +141,9 @@ contract LendingPool {
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
 
         _updatePosition(onBehalf);
+        emit EventLib.WithdrawCollateralByPosition(
+            address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]
+        );
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -163,6 +171,8 @@ contract LendingPool {
         userPositions[msg.sender][onBehalf].borrowedAmount += amount;
 
         IERC20(loanToken).transfer(msg.sender, amount);
+
+        emit EventLib.BorrowByPosition(address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]);
     }
 
     function repayByPosition(address onBehalf, uint256 shares) public onlyActivePosition(onBehalf) {
@@ -180,6 +190,7 @@ contract LendingPool {
         totalBorrowShares -= shares;
 
         _updatePosition(onBehalf);
+        emit EventLib.RepayByPosition(address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]);
     }
 
     function accrueInterest() public {
