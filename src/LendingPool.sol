@@ -3,8 +3,11 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {PriceConverter} from "./PriceConverter.sol";
-import {LendingPosition, Position} from "./LendingPosition.sol";
+import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
+import {EventLib} from "./libraries/EventLib.sol";
+import {Position} from "./interfaces/ILendingPosition.sol";
+
+contract LendingPosition {}
 
 contract LendingPool {
     error InsufficientCollateral();
@@ -15,10 +18,12 @@ contract LendingPool {
     error TransferReverted();
     error ZeroAddress();
 
+    address public immutable owner;
+    bytes32 public immutable contractId;
     IERC20 public immutable loanToken;
     IERC20 public immutable collateralToken;
-    AggregatorV2V3Interface internal loanTokenUsdDataFeed;
-    AggregatorV2V3Interface internal collateralTokenUsdDataFeed;
+    AggregatorV2V3Interface public loanTokenUsdDataFeed;
+    AggregatorV2V3Interface public collateralTokenUsdDataFeed;
 
     uint256 public totalSupplyAssets;
     uint256 public totalSupplyShares;
@@ -29,22 +34,14 @@ contract LendingPool {
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
 
-    event UserPosition(
-        address indexed caller,
-        address indexed onBehalf,
-        uint256 collateralAmount,
-        uint256 borrowAmount,
-        uint256 timestamp,
-        bool isActive
-    );
-    event UserSupplyShare(address indexed caller, uint256 supplyShare, uint256 timestamp);
-
     constructor(
         IERC20 _loanToken,
         IERC20 _collateralToken,
         AggregatorV2V3Interface _loanTokenUsdPriceFeed,
         AggregatorV2V3Interface _collateralTokenUsdPriceFeed
     ) {
+        owner = msg.sender;
+        contractId = getContractId(address(_loanToken), address(_collateralToken));
         loanToken = _loanToken;
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
@@ -55,6 +52,10 @@ contract LendingPool {
     modifier onlyActivePosition(address onBehalf) {
         if (!userPositions[msg.sender][onBehalf].isActive) revert NoActivePosition();
         _;
+    }
+
+    function getContractId(address _loanToken, address _collateralToken) public pure returns (bytes32) {
+        return keccak256(abi.encode(_loanToken, _collateralToken));
     }
 
     function createPosition() public returns (address) {
@@ -103,7 +104,7 @@ contract LendingPool {
         totalSupplyAssets += amount;
         totalSupplyShares += shares;
         userSupplyShares[msg.sender] += shares;
-        emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
+        emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
 
     function withdraw(uint256 shares) public {
@@ -115,7 +116,7 @@ contract LendingPool {
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
-        emit UserSupplyShare(msg.sender, userSupplyShares[msg.sender], block.timestamp);
+        emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
@@ -138,7 +139,7 @@ contract LendingPool {
     }
 
     function borrowByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        uint256 collateral = PriceConverter.getConversionRate(
+        uint256 collateral = PriceConverterLib.getConversionRate(
             userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
         );
 
@@ -186,9 +187,17 @@ contract LendingPool {
     }
 
     function _updatePosition(address onBehalf) internal {
-        Position storage position = userPositions[msg.sender][onBehalf];
-        emit UserPosition(
-            msg.sender, onBehalf, position.collateralAmount, position.borrowedAmount, block.timestamp, position.isActive
+        Position memory position = userPositions[msg.sender][onBehalf];
+        position.timestamp = block.timestamp;
+
+        emit EventLib.UserPosition(
+            address(this),
+            msg.sender,
+            onBehalf,
+            position.collateralAmount,
+            position.borrowedAmount,
+            position.timestamp,
+            position.isActive
         );
     }
 
@@ -204,5 +213,7 @@ contract LendingPool {
         totalSupplyAssets += interest;
 
         lastAccrued = block.timestamp;
+
+        emit EventLib.AccrueInterest(contractId, address(this), borrowRate, interest);
     }
 }

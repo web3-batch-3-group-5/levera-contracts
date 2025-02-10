@@ -15,11 +15,11 @@ build:
 	forge build --build-info --build-info-path out/build-info/
 
 # Define a target to deploy using the specified network
-script-deploy: build
+deploy: build
 	$(call forge_script,$(DEF_SCRIPT_FILE))
 
 # Define a target to verify deployment using the specified network
-script-deploy-verify: build
+deploy-verify: build
 	$(call forge_script,$(DEF_SCRIPT_FILE),--rpc-url $(RPC_URL) \
 	--private-key ${WALLET_PRIVATE_KEY} \
 	--verifier ${VERIFIER} \

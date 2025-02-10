@@ -4,28 +4,12 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
+import {PoolParams} from "./interfaces/ILendingPool.sol";
+import {EventLib} from "./libraries/EventLib.sol";
 import {LendingPool} from "./LendingPool.sol";
 
-// Immutable values
-struct BasePoolParams {
-    address loanToken;
-    address collateralToken;
-    address loanTokenUsdDataFeed;
-    address collateralTokenUsdDataFeed;
-}
-
-// Mutable values
-struct PoolParams {
-    BasePoolParams basePoolParams;
-    string loanTokenName;
-    string collateralTokenName;
-    string loanTokenSymbol;
-    string collateralTokenSymbol;
-    address creator;
-    bool isActive;
-}
-
 contract LendingPoolFactory {
+    error NotALendingPool();
     error PoolAlreadyCreated();
     error PoolNotFound();
     error Unauthorized();
@@ -34,21 +18,6 @@ contract LendingPoolFactory {
     mapping(bytes32 => address) public lendingPoolIds;
     mapping(address => PoolParams) public lendingPools;
     address[] public createdLendingPools;
-
-    event AllLendingPool(
-        address loanToken,
-        address collateralToken,
-        address loanTokenUsdDataFeed,
-        address collateralTokenUsdDataFeed,
-        string loanTokenName,
-        string collateralTokenName,
-        string loanTokenSymbol,
-        string collateralTokenSymbol,
-        address lendingPool,
-        uint256 timestamp,
-        address creator,
-        bool isActive
-    );
 
     constructor() {
         owner = msg.sender;
@@ -64,29 +33,45 @@ contract LendingPoolFactory {
         _;
     }
 
-    function createLendingPool(BasePoolParams calldata params) external returns (address) {
-        bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
+    function createLendingPool(
+        address loanToken,
+        address collateralToken,
+        address loanTokenUsdDataFeed,
+        address collateralTokenUsdDataFeed
+    ) external returns (address) {
+        bytes32 id = keccak256(abi.encode(loanToken, collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
         LendingPool lendingPool = new LendingPool(
-            IERC20(params.loanToken),
-            IERC20(params.collateralToken),
-            AggregatorV2V3Interface(params.loanTokenUsdDataFeed),
-            AggregatorV2V3Interface(params.collateralTokenUsdDataFeed)
+            IERC20(loanToken),
+            IERC20(collateralToken),
+            AggregatorV2V3Interface(loanTokenUsdDataFeed),
+            AggregatorV2V3Interface(collateralTokenUsdDataFeed)
         );
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
 
-        string memory loanTokenName = getTokenName(params.loanToken);
-        string memory collateralTokenName = getTokenName(params.collateralToken);
-        string memory loanTokenSymbol = getTokenSymbol(params.loanToken);
-        string memory collateralTokenSymbol = getTokenSymbol(params.collateralToken);
+        string memory loanTokenName = getTokenName(loanToken);
+        string memory collateralTokenName = getTokenName(collateralToken);
+        string memory loanTokenSymbol = getTokenSymbol(loanToken);
+        string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
 
         lendingPools[address(lendingPool)] = PoolParams(
-            params, loanTokenName, collateralTokenName, loanTokenSymbol, collateralTokenSymbol, msg.sender, true
+            loanToken,
+            collateralToken,
+            loanTokenUsdDataFeed,
+            collateralTokenUsdDataFeed,
+            loanTokenName,
+            collateralTokenName,
+            loanTokenSymbol,
+            collateralTokenSymbol,
+            address(this), // LendingPool is created by factory contract
+            true
         );
 
         _indexLendingPool(address(lendingPool));
+
+        emit EventLib.CreateLendingPool(id, address(lendingPool), lendingPools[address(lendingPool)]);
 
         return address(lendingPool);
     }
@@ -100,51 +85,75 @@ contract LendingPoolFactory {
         _indexLendingPool(_lendingPool);
     }
 
-    function storeLendingPool(BasePoolParams calldata params, address _lendingPool) public {
-        bytes32 id = keccak256(abi.encode(params.loanToken, params.collateralToken));
+    function storeLendingPool(address _lendingPool) external {
+        if (lendingPools[_lendingPool].creator != address(0)) revert PoolAlreadyCreated();
+        if (_lendingPool == address(0) || !isContract(_lendingPool)) revert NotALendingPool();
+
+        LendingPool lendingPool = LendingPool(_lendingPool);
+        address loanToken = address(lendingPool.loanToken());
+        address collateralToken = address(lendingPool.collateralToken());
+        address loanTokenUsdDataFeed = address(lendingPool.loanTokenUsdDataFeed());
+        address collateralTokenUsdDataFeed = address(lendingPool.collateralTokenUsdDataFeed());
+
+        if (
+            loanToken == address(0) || collateralToken == address(0) || loanTokenUsdDataFeed == address(0)
+                || collateralTokenUsdDataFeed == address(0)
+        ) {
+            revert NotALendingPool();
+        }
+
+        bytes32 id = lendingPool.contractId();
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
-
-        string memory loanTokenName = getTokenName(params.loanToken);
-        string memory collateralTokenName = getTokenName(params.collateralToken);
-        string memory loanTokenSymbol = getTokenSymbol(params.loanToken);
-        string memory collateralTokenSymbol = getTokenSymbol(params.collateralToken);
-
         lendingPoolIds[id] = _lendingPool;
+
+        string memory loanTokenName = getTokenName(loanToken);
+        string memory collateralTokenName = getTokenName(collateralToken);
+        string memory loanTokenSymbol = getTokenSymbol(loanToken);
+        string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
+
         lendingPools[_lendingPool] = PoolParams(
-            params, loanTokenName, collateralTokenName, loanTokenSymbol, collateralTokenSymbol, msg.sender, true
+            loanToken,
+            collateralToken,
+            loanTokenUsdDataFeed,
+            collateralTokenUsdDataFeed,
+            loanTokenName,
+            collateralTokenName,
+            loanTokenSymbol,
+            collateralTokenSymbol,
+            lendingPool.owner(),
+            true
         );
 
         _indexLendingPool(_lendingPool);
+
+        emit EventLib.StoreLendingPool(id, _lendingPool, lendingPools[_lendingPool]);
     }
 
-    function discardLendingPool(address _lendingPool) public isExist(_lendingPool) canUpdate(_lendingPool) {
+    function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {
         updateLendingPoolStatus(_lendingPool, false);
 
-        bytes32 id = keccak256(
-            abi.encode(
-                lendingPools[_lendingPool].basePoolParams.loanToken,
-                lendingPools[_lendingPool].basePoolParams.collateralToken
-            )
-        );
+        LendingPool lendingPool = LendingPool(_lendingPool);
+        bytes32 id = lendingPool.contractId();
 
         delete lendingPoolIds[id];
         delete lendingPools[_lendingPool];
+
+        emit EventLib.DiscardLendingPool(id, _lendingPool);
     }
 
     function _indexLendingPool(address _lendingPool) internal isExist(_lendingPool) {
         PoolParams memory pool = lendingPools[_lendingPool];
 
-        emit AllLendingPool(
-            pool.basePoolParams.loanToken,
-            pool.basePoolParams.collateralToken,
-            pool.basePoolParams.loanTokenUsdDataFeed,
-            pool.basePoolParams.collateralTokenUsdDataFeed,
+        emit EventLib.AllLendingPool(
+            _lendingPool,
+            pool.loanToken,
+            pool.collateralToken,
+            pool.loanTokenUsdDataFeed,
+            pool.collateralTokenUsdDataFeed,
             pool.loanTokenName,
             pool.collateralTokenName,
             pool.loanTokenSymbol,
             pool.collateralTokenSymbol,
-            _lendingPool,
-            block.timestamp,
             pool.creator,
             pool.isActive
         );
@@ -164,5 +173,13 @@ contract LendingPoolFactory {
         } catch {
             return "UNKNOWN"; // Fallback name if `symbol()` is not implemented
         }
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(account)
+        }
+        return size > 0;
     }
 }

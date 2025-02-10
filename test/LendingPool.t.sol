@@ -5,9 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
-import {LendingPool} from "../src/LendingPool.sol";
-import {LendingPosition, Position} from "../src/LendingPosition.sol";
-import {PriceConverter} from "../src/PriceConverter.sol";
+import {LendingPool, LendingPosition} from "../src/LendingPool.sol";
+import {Position} from "../src/interfaces/ILendingPosition.sol";
+import {PriceConverterLib} from "../src/libraries/PriceConverterLib.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -81,7 +81,7 @@ contract LendingPoolTest is Test {
         lendingPool.supplyCollateralByPosition(onBehalf, bobCollateralAmount);
 
         uint256 collateralAmount =
-            PriceConverter.getConversionRate(bobCollateralAmount, wbtcUsdPriceFeed, usdcUsdPriceFeed);
+            PriceConverterLib.getConversionRate(bobCollateralAmount, wbtcUsdPriceFeed, usdcUsdPriceFeed);
 
         console.log("Bob's Collateral Amount", collateralAmount);
 

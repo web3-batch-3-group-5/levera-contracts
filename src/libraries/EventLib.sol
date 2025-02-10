@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.0;
+
+import {PoolParams} from "../interfaces/ILendingPool.sol";
+import {Position} from "../interfaces/ILendingPosition.sol";
+
+library EventLib {
+    event AllLendingPool(
+        address indexed lendingPool,
+        address loanToken,
+        address collateralToken,
+        address loanTokenUsdDataFeed,
+        address collateralTokenUsdDataFeed,
+        string loanTokenName,
+        string collateralTokenName,
+        string loanTokenSymbol,
+        string collateralTokenSymbol,
+        address creator,
+        bool isActive
+    );
+
+    event CreateLendingPool(bytes32 indexed id, address indexed lendingPool, PoolParams poolParams);
+
+    event StoreLendingPool(bytes32 indexed id, address indexed lendingPool, PoolParams poolParams);
+
+    event DiscardLendingPool(bytes32 indexed id, address indexed lendingPool);
+
+    event UserSupplyShare(address indexed lendingPool, address indexed caller, uint256 supplyShare);
+
+    event Supply(address indexed lendingPool, address indexed caller, uint256 supplyShare);
+
+    event Withdraw(address indexed lendingPool, address indexed caller, uint256 supplyShare);
+
+    event UserPosition(
+        address indexed lendingPool,
+        address indexed caller,
+        address indexed onBehalf,
+        uint256 collateralAmount,
+        uint256 borrowAmount,
+        uint256 timestamp,
+        bool isActive
+    );
+
+    event SupplyCollateralByPosition(
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+    );
+
+    event WithdrawCollateralByPosition(
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+    );
+
+    event BorrowByPosition(
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+    );
+
+    event RepayByPosition(
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+    );
+
+    event AccrueInterest(bytes32 indexed id, address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
+}

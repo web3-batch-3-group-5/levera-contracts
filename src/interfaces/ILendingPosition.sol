@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {LendingPool} from "./LendingPool.sol";
-
-error InsufficientCollateral();
-
 struct Position {
     uint256 collateralAmount;
     uint256 borrowedAmount;
     uint256 timestamp;
     bool isActive;
 }
-
-contract LendingPosition {}

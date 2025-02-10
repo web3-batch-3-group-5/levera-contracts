@@ -12,11 +12,11 @@ contract Deploy is Script {
     function run() public {
         vm.startBroadcast();
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory();
-        MockFactory mockFactory = new MockFactory();
+        // MockFactory mockFactory = new MockFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
-        console.log("Mock Factory deployed at:", address(mockFactory));
+        // console.log("Mock Factory deployed at:", address(mockFactory));
         console.log("==============================================================");
 
         vm.stopBroadcast();

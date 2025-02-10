@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 
-error NegativeAnswer();
+library PriceConverterLib {
+    error NegativeAnswer();
 
-library PriceConverter {
     uint256 constant PRECISION = 1e18; // ETH Precision
 
     function getPrice(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
