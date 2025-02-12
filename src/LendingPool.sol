@@ -30,8 +30,9 @@ contract LendingPool {
     uint256 public totalSupplyShares;
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
-    uint256 lastAccrued;
-    uint256 ltv = 70;
+    uint256 public ltv = 70;
+    uint256 public borrowRate = 5;
+    uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => Position)) public userPositions;
@@ -48,7 +49,6 @@ contract LendingPool {
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
-        lastAccrued = block.timestamp;
     }
 
     modifier onlyActivePosition(address onBehalf) {
@@ -223,8 +223,6 @@ contract LendingPool {
     }
 
     function _accrueInterest() internal {
-        uint256 borrowRate = 5;
-
         uint256 interestPerYear = totalBorrowAssets * borrowRate / 100;
         uint256 elapsedTime = block.timestamp - lastAccrued;
 
