@@ -118,6 +118,7 @@ contract LendingPool {
         _accrueInterest();
 
         uint256 amount = (shares * totalSupplyAssets) / totalSupplyShares;
+        if (amount > totalSupplyAssets) revert InsufficientLiquidity();
 
         totalSupplyAssets -= amount;
         totalSupplyShares -= shares;
@@ -146,11 +147,11 @@ contract LendingPool {
         _accrueInterest();
         if (amount == 0) revert ZeroAmount();
         if (amount > userPositions[msg.sender][onBehalf].collateralAmount) revert InsufficientCollateral();
-        _isHealthy(onBehalf);
 
         IERC20(collateralToken).transfer(msg.sender, amount);
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
 
+        _isHealthy(onBehalf);
         _updatePosition(onBehalf);
         emit EventLib.WithdrawCollateralByPosition(
             address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]
