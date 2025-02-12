@@ -216,7 +216,7 @@ contract LendingPool {
             msg.sender,
             onBehalf,
             position.collateralAmount,
-            position.borrowedAmount,
+            position.borrowShares,
             position.timestamp,
             position.isActive
         );
@@ -236,9 +236,9 @@ contract LendingPool {
         emit EventLib.AccrueInterest(address(this), borrowRate, interest);
     }
 
-    function _isHealthy(address onBehalf) internal {
+    function _isHealthy(address onBehalf) internal view {
         uint256 borrowShares = userPositions[msg.sender][onBehalf].borrowShares;
-        uint256 collateral = PriceConverter.getConversionRate(
+        uint256 collateral = PriceConverterLib.getConversionRate(
             userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
         );
 

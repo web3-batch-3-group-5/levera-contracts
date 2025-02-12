@@ -47,7 +47,7 @@ contract LendingPoolTest is Test {
         mockWBTC.mint(bob, 2e6);
     }
 
-    function supplyLiquidity(address user, uint256 amount) internal {
+    function supplyLiquidity(uint256 amount) internal {
         IERC20(mockUSDC).approve(address(lendingPool), amount);
         lendingPool.supply(amount);
     }
@@ -72,7 +72,7 @@ contract LendingPoolTest is Test {
 
         // Alice supply liquidity
         vm.startPrank(alice);
-        supplyLiquidity(alice, initialDeposit);
+        supplyLiquidity(initialDeposit);
         vm.stopPrank();
 
         // Verify Alice's balance in LendingPool
@@ -299,13 +299,12 @@ contract LendingPoolTest is Test {
 
         // Alice supplies liquidity
         vm.startPrank(alice);
-        supplyLiquidity(alice, supplyAmount);
+        supplyLiquidity(supplyAmount);
         vm.stopPrank();
 
         vm.startPrank(bob);
         address onBehalf = address(createPosition());
         supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
-        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
 
         // Bob withdrawshis collateral
         vm.expectRevert(LendingPool.InsufficientCollateral.selector);
@@ -319,13 +318,13 @@ contract LendingPoolTest is Test {
 
         // Alice supplies liquidity
         vm.startPrank(alice);
-        supplyLiquidity(alice, supplyAmount);
+        supplyLiquidity(supplyAmount);
         vm.stopPrank();
 
         vm.startPrank(bob);
         address onBehalf = address(createPosition());
         supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
-        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
+        (uint256 collateralAmount,,,) = lendingPool.getPosition(onBehalf);
 
         // Bob withdrawshis collateral
         withdrawCollateral(onBehalf, withdrawAmount);
@@ -342,7 +341,7 @@ contract LendingPoolTest is Test {
 
         // Alice supplies liquidity
         vm.startPrank(alice);
-        supplyLiquidity(alice, supplyAmount);
+        supplyLiquidity(supplyAmount);
         vm.stopPrank();
 
         // Ensure Alice's initial shares are correct
