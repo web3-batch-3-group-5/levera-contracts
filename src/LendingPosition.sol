@@ -7,7 +7,7 @@ error InsufficientCollateral();
 
 struct Position {
     uint256 collateralAmount;
-    uint256 borrowedAmount;
+    uint256 borrowShares;
     uint256 timestamp;
     bool isActive;
 }
