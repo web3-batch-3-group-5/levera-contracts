@@ -47,17 +47,32 @@ contract LendingPoolTest is Test {
         mockWBTC.mint(bob, 2e6);
     }
 
+    function supplyLiquidity(address user, uint256 amount) internal {
+        IERC20(mockUSDC).approve(address(lendingPool), amount);
+        lendingPool.supply(amount);
+    }
+
+    function supplyCollateralByPosition(address onBehalf, uint256 amount) internal {
+        IERC20(mockWBTC).approve(address(lendingPool), amount);
+        lendingPool.supplyCollateralByPosition(onBehalf, amount);
+    }
+
+    function withdrawCollateral(address onBehalf, uint256 amount) internal {
+        lendingPool.withdrawCollateralByPosition(onBehalf, amount);
+    }
+
+    function createPosition() internal returns (address) {
+        return address(lendingPool.createPosition());
+    }
+
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;
         uint256 bobBorrowAmount = 20_000e6;
         uint256 bobCollateralAmount = 1e6;
 
-        // Alice deposit
+        // Alice supply liquidity
         vm.startPrank(alice);
-        IERC20(mockUSDC).approve(address(lendingPool), initialDeposit);
-
-        // Alice supply to lending pool
-        lendingPool.supply(initialDeposit);
+        supplyLiquidity(alice, initialDeposit);
         vm.stopPrank();
 
         // Verify Alice's balance in LendingPool
@@ -99,19 +114,19 @@ contract LendingPoolTest is Test {
         console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
     }
 
-    function test_create_position() public {
+    function test_createPosition() public {
         // Alice create position
         vm.startPrank(alice);
         address onBehalf = address(lendingPool.createPosition());
-        (uint256 collateralAmount, uint256 borrowedAmount,, bool isActive) = lendingPool.getPosition(onBehalf);
+        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
         vm.stopPrank();
 
         assertEq(collateralAmount, 0);
-        assertEq(borrowedAmount, 0);
+        assertEq(borrowShares, 0);
         assertTrue(isActive);
     }
 
-    function test_SupplyCollateral_NoPosition() public {
+    function test_supplyCollateralByPosition_NoActivePosition() public {
         uint256 supplyCollateralAmount = 100_000e6;
         address randomOnBehalf = address(0x1234567890123456789012345678901234567890);
 
@@ -119,7 +134,7 @@ contract LendingPoolTest is Test {
         lendingPool.supplyCollateralByPosition(randomOnBehalf, supplyCollateralAmount);
     }
 
-    function test_supply_colateral() public {
+    function test_supplyCollateralByPosition() public {
         uint256 supplyCollateralAmount = 1e6;
 
         // Alice create position
@@ -138,7 +153,7 @@ contract LendingPoolTest is Test {
         console.log("collateral amount", collateralAmount);
     }
 
-    function test_borrow_by_position() public {
+    function test_borrowByPosition() public {
         uint256 supplyCollateralAmount = 1e6; // in wbtc
         uint256 borrowAmount = 10e6; // in usdc
 
@@ -186,7 +201,7 @@ contract LendingPoolTest is Test {
         console.log("Alice successfully borrowed", aliceBalanceBefore += borrowAmount);
     }
 
-    function test_borrow_exceeds_collateral() public {
+    function test_borrowByCollateral_InsufficientCollateral() public {
         uint256 supplyCollateralAmount = 1e4;
         uint256 borrowAmount = 2000e6; // More than allowed
 
@@ -211,7 +226,7 @@ contract LendingPoolTest is Test {
         lendingPool.borrowByPosition(onBehalf, borrowAmount);
     }
 
-    function test_borrow_insuficientLiquid_collateral() public {
+    function test_borrowByCollateral_InsufficientLiquidity() public {
         uint256 supplyCollateralAmount = 1e6;
         uint256 borrowAmount = 100e6;
 
@@ -236,7 +251,7 @@ contract LendingPoolTest is Test {
         lendingPool.borrowByPosition(onBehalf, borrowAmount);
     }
 
-    function test_repay_by_position() public {
+    function test_repayByPosition() public {
         uint256 supplyCollateralAmount = 1e6;
         uint256 borrowAmount = 5e5;
         uint256 repayShares = 2e5;
@@ -275,5 +290,106 @@ contract LendingPoolTest is Test {
         assertEq(borrowedAfter, borrowedBefore - repayShares, "Borrowed amount should decrease after repayment");
 
         console.log("Alice successfully repaid", repayShares);
+    }
+
+    function test_withdrawCollateralByPosition_OutstandingBorrowShares() public {
+        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
+        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
+        uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
+        uint256 borrowAmount = 1e5;
+
+        // Alice supplies liquidity
+        vm.startPrank(alice);
+        supplyLiquidity(alice, supplyAmount);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        address onBehalf = address(createPosition());
+        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+        lendingPool.borrowByPosition(onBehalf, borrowAmount);
+        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
+
+        // Bob withdrawshis collateral
+        vm.expectRevert(LendingPool.OutstandingBorrowShares.selector);
+        withdrawCollateral(onBehalf, withdrawAmount);
+    }
+
+    function test_withdrawCollateralByPosition_InsufficientCollateral() public {
+        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
+        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
+        uint256 withdrawAmount = 2e6; // 1 WBTC withdrawal
+
+        // Alice supplies liquidity
+        vm.startPrank(alice);
+        supplyLiquidity(alice, supplyAmount);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        address onBehalf = address(createPosition());
+        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
+
+        // Bob withdrawshis collateral
+        vm.expectRevert(LendingPool.InsufficientCollateral.selector);
+        withdrawCollateral(onBehalf, withdrawAmount);
+    }
+
+    function test_withdrawCollateralByPosition() public {
+        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
+        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
+        uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
+
+        // Alice supplies liquidity
+        vm.startPrank(alice);
+        supplyLiquidity(alice, supplyAmount);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        address onBehalf = address(createPosition());
+        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
+
+        // Bob withdrawshis collateral
+        withdrawCollateral(onBehalf, withdrawAmount);
+
+        // Ensure collateral is reduced accordingly
+        (uint256 newCollateralAmount,,,) = lendingPool.getPosition(onBehalf);
+        assertEq(newCollateralAmount, collateralAmount - withdrawAmount, "Collateral withdrawal mismatch");
+        vm.stopPrank();
+    }
+
+    function test_withdraw() public {
+        uint256 supplyAmount = 100_000e6;
+        uint256 withdrawShares = 50_000e6;
+
+        // Alice supplies liquidity
+        vm.startPrank(alice);
+        supplyLiquidity(alice, supplyAmount);
+        vm.stopPrank();
+
+        // Ensure Alice's initial shares are correct
+        assertEq(lendingPool.userSupplyShares(alice), supplyAmount, "Alice should have correct supply shares");
+
+        // Alice withdraws a portion of her shares
+        vm.startPrank(alice);
+        lendingPool.withdraw(withdrawShares);
+        vm.stopPrank();
+
+        // Validate updated shares and balances
+        assertEq(lendingPool.userSupplyShares(alice), supplyAmount - withdrawShares, "Alice's shares should decrease");
+        assertEq(lendingPool.totalSupplyShares(), supplyAmount - withdrawShares, "Total shares should decrease");
+        assertEq(IERC20(mockUSDC).balanceOf(alice), withdrawShares, "Alice should receive withdrawn USDC");
+
+        // Ensure withdrawal of `0` shares fails
+        vm.startPrank(alice);
+        vm.expectRevert(LendingPool.ZeroAmount.selector);
+        lendingPool.withdraw(0);
+        vm.stopPrank();
+
+        // Step 6: Ensure withdrawal of more than owned shares fails
+        vm.startPrank(alice);
+        vm.expectRevert(LendingPool.InsufficientShares.selector);
+        lendingPool.withdraw(supplyAmount); // Trying to withdraw more than available
+        vm.stopPrank();
     }
 }
