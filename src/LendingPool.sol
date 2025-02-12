@@ -16,10 +16,8 @@ contract LendingPool {
     error InvalidAmount();
     error NoActivePosition();
     error NonZeroActivePosition();
-    error TransferReverted();
     error ZeroAddress();
     error ZeroAmount();
-    error OutstandingBorrowShares();
 
     address public immutable owner;
     bytes32 public immutable contractId;
@@ -107,8 +105,7 @@ contract LendingPool {
         userSupplyShares[msg.sender] += shares;
 
         // Transfer USDC from sender to contract
-        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TransferReverted();
+        IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
 
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
         emit EventLib.Supply(address(this), msg.sender, userSupplyShares[msg.sender]);
@@ -135,8 +132,7 @@ contract LendingPool {
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
-        bool success = IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TransferReverted();
+        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
 
         userPositions[msg.sender][onBehalf].collateralAmount += amount;
 
@@ -149,8 +145,8 @@ contract LendingPool {
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         _accrueInterest();
         if (amount == 0) revert ZeroAmount();
-        if (userPositions[msg.sender][onBehalf].borrowShares != 0) revert OutstandingBorrowShares();
         if (amount > userPositions[msg.sender][onBehalf].collateralAmount) revert InsufficientCollateral();
+        _isHealthy(onBehalf);
 
         IERC20(collateralToken).transfer(msg.sender, amount);
         userPositions[msg.sender][onBehalf].collateralAmount -= amount;
@@ -201,8 +197,7 @@ contract LendingPool {
         totalBorrowAssets -= amount;
 
         // Transfer funds from user
-        bool success = IERC20(loanToken).transferFrom(msg.sender, address(this), shares);
-        if (!success) revert TransferReverted();
+        IERC20(loanToken).transferFrom(msg.sender, address(this), shares);
 
         _updatePosition(onBehalf);
         emit EventLib.RepayByPosition(address(this), msg.sender, onBehalf, userPositions[msg.sender][onBehalf]);
