@@ -19,11 +19,11 @@ library EventLib {
         bool isActive
     );
 
-    event CreateLendingPool(bytes32 indexed id, address indexed lendingPool, PoolParams poolParams);
+    event CreateLendingPool(address indexed lendingPool, PoolParams poolParams);
 
-    event StoreLendingPool(bytes32 indexed id, address indexed lendingPool, PoolParams poolParams);
+    event StoreLendingPool(address indexed lendingPool, PoolParams poolParams);
 
-    event DiscardLendingPool(bytes32 indexed id, address indexed lendingPool);
+    event DiscardLendingPool(address indexed lendingPool);
 
     event UserSupplyShare(address indexed lendingPool, address indexed caller, uint256 supplyShare);
 
@@ -57,5 +57,5 @@ library EventLib {
         address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
     );
 
-    event AccrueInterest(bytes32 indexed id, address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
+    event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
 }

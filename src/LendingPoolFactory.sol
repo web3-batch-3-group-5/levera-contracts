@@ -71,7 +71,7 @@ contract LendingPoolFactory {
 
         _indexLendingPool(address(lendingPool));
 
-        emit EventLib.CreateLendingPool(id, address(lendingPool), lendingPools[address(lendingPool)]);
+        emit EventLib.CreateLendingPool(address(lendingPool), lendingPools[address(lendingPool)]);
 
         return address(lendingPool);
     }
@@ -126,7 +126,7 @@ contract LendingPoolFactory {
 
         _indexLendingPool(_lendingPool);
 
-        emit EventLib.StoreLendingPool(id, _lendingPool, lendingPools[_lendingPool]);
+        emit EventLib.StoreLendingPool(_lendingPool, lendingPools[_lendingPool]);
     }
 
     function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {
@@ -138,7 +138,7 @@ contract LendingPoolFactory {
         delete lendingPoolIds[id];
         delete lendingPools[_lendingPool];
 
-        emit EventLib.DiscardLendingPool(id, _lendingPool);
+        emit EventLib.DiscardLendingPool(_lendingPool);
     }
 
     function _indexLendingPool(address _lendingPool) internal isExist(_lendingPool) {

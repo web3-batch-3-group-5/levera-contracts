@@ -225,6 +225,6 @@ contract LendingPool {
 
         lastAccrued = block.timestamp;
 
-        emit EventLib.AccrueInterest(contractId, address(this), borrowRate, interest);
+        emit EventLib.AccrueInterest(address(this), borrowRate, interest);
     }
 }
