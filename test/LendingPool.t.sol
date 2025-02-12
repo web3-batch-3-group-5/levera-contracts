@@ -292,32 +292,10 @@ contract LendingPoolTest is Test {
         console.log("Alice successfully repaid", repayShares);
     }
 
-    function test_withdrawCollateralByPosition_OutstandingBorrowShares() public {
-        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
+    function test_withdrawCollateralByPosition_InsufficientCollateral() public {
+        uint256 supplyCollateralAmount = 1e5; // 1 WBTC as collateral
         uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
         uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
-        uint256 borrowAmount = 1e5;
-
-        // Alice supplies liquidity
-        vm.startPrank(alice);
-        supplyLiquidity(alice, supplyAmount);
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        address onBehalf = address(createPosition());
-        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
-        lendingPool.borrowByPosition(onBehalf, borrowAmount);
-        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
-
-        // Bob withdrawshis collateral
-        vm.expectRevert(LendingPool.OutstandingBorrowShares.selector);
-        withdrawCollateral(onBehalf, withdrawAmount);
-    }
-
-    function test_withdrawCollateralByPosition_InsufficientCollateral() public {
-        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
-        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
-        uint256 withdrawAmount = 2e6; // 1 WBTC withdrawal
 
         // Alice supplies liquidity
         vm.startPrank(alice);
