@@ -36,7 +36,7 @@ library EventLib {
         address indexed caller,
         address indexed onBehalf,
         uint256 collateralAmount,
-        uint256 borrowAmount,
+        uint256 borrowShares,
         uint256 timestamp,
         bool isActive
     );
