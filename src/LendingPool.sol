@@ -243,10 +243,11 @@ contract LendingPool {
             userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
         );
 
+        uint256 borrowAmount = totalBorrowShares == 0 ? 0 : (borrowShares * totalBorrowAssets) / totalBorrowShares;
         // Ensure borrowed doesn't exceed collateral before subtraction
-        if (borrowShares >= collateral) revert InsufficientCollateral();
+        if (borrowAmount > collateral) revert InsufficientCollateral();
 
-        uint256 allowedBorrowAmount = (collateral - borrowShares) * ltv / 100;
-        if (borrowShares > allowedBorrowAmount) revert InsufficientCollateral();
+        uint256 allowedBorrowAmount = (collateral - borrowAmount) * ltv / 100;
+        if (borrowAmount > allowedBorrowAmount) revert InsufficientCollateral();
     }
 }
