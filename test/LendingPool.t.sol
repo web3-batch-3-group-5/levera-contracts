@@ -369,4 +369,27 @@ contract LendingPoolTest is Test {
         lendingPool.withdraw(supplyAmount); // Trying to withdraw more than available
         vm.stopPrank();
     }
+
+    function test_flashLoan() public {
+        // give 100 USDC to lending pool
+        deal(address(mockUSDC), address(lendingPool), 100e6);
+        uint256 amount = 100e6;
+
+        // encode parameter to bytes: address,uint256
+        bytes memory params = abi.encode(address(this), amount);
+
+        lendingPool.flashLoan(address(mockUSDC), amount, params);
+    }
+
+    function onFlashLoan(address token, uint256 amount, bytes calldata params) external {
+        console.log("Flashloan received", amount);
+
+        // decode parameter from bytes: address,uint256
+        (address receiver, uint256 _amount) = abi.decode(params, (address, uint256));
+
+        // mint
+        mockUSDC.mint(receiver, _amount);
+
+        IERC20(token).approve(address(lendingPool), amount);
+    }
 }

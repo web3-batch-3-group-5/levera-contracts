@@ -9,6 +9,10 @@ import {Position} from "./interfaces/ILendingPosition.sol";
 
 contract LendingPosition {}
 
+interface IFlashLoanCallback {
+    function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
+}
+
 contract LendingPool {
     error InsufficientCollateral();
     error InsufficientLiquidity();
@@ -18,6 +22,7 @@ contract LendingPool {
     error NonZeroActivePosition();
     error ZeroAddress();
     error ZeroAmount();
+    error FlashLoanFailed();
 
     address public immutable owner;
     bytes32 public immutable contractId;
@@ -249,5 +254,16 @@ contract LendingPool {
 
         uint256 allowedBorrowAmount = (collateral - borrowAmount) * ltv / 100;
         if (borrowAmount > allowedBorrowAmount) revert InsufficientCollateral();
+    }
+
+    // flashloan
+    function flashLoan(address token, uint256 amount, bytes calldata data) external {
+        if (amount == 0) revert ZeroAmount();
+
+        IERC20(token).transfer(msg.sender, amount);
+
+        IFlashLoanCallback(msg.sender).onFlashLoan(token, amount, data);
+
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
     }
 }
