@@ -6,8 +6,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {LendingPool, LendingPosition} from "../src/LendingPool.sol";
-import {Position} from "../src/interfaces/ILendingPosition.sol";
+// import {Position} from "../src/interfaces/ILendingPosition.sol";
 import {PriceConverterLib} from "../src/libraries/PriceConverterLib.sol";
+import {PositionFactory} from "../src/PositionFactory.sol";
+import {Position} from "../src/Position.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -15,6 +17,7 @@ contract LendingPoolTest is Test {
     MockV3Aggregator public usdcUsdPriceFeed;
     MockV3Aggregator public wbtcUsdPriceFeed;
     LendingPool public lendingPool;
+    PositionFactory public positionFactory;
 
     uint8 public DECIMALS = 8;
     int64 public constant USDC_USD_PRICE = 1e8;
@@ -32,6 +35,7 @@ contract LendingPoolTest is Test {
         wbtcUsdPriceFeed = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
 
         lendingPool = new LendingPool(mockUSDC, mockWBTC, usdcUsdPriceFeed, wbtcUsdPriceFeed);
+        positionFactory = new PositionFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
@@ -381,6 +385,7 @@ contract LendingPoolTest is Test {
         lendingPool.flashLoan(address(mockUSDC), amount, params);
     }
 
+    // to receive flashloan
     function onFlashLoan(address token, uint256 amount, bytes calldata params) external {
         console.log("Flashloan received", amount);
 
@@ -391,5 +396,13 @@ contract LendingPoolTest is Test {
         mockUSDC.mint(receiver, _amount);
 
         IERC20(token).approve(address(lendingPool), amount);
+    }
+
+    function test_position() public {
+        Position position = Position(positionFactory.createPosition(address(lendingPool)));
+        assertEq(position.lendingPool(), address(lendingPool), "Position should have correct lending pool");
+        assertEq(position.collateralToken(), address(mockWBTC), "Position should have correct collateral token");
+        assertEq(position.loanToken(), address(mockUSDC), "Position should have correct loan token");
+        console.log("Position created at", address(position));
     }
 }
