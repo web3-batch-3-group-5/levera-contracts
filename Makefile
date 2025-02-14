@@ -1,7 +1,6 @@
 include .env
 
 # Default values
-RPC_URL := https://${NETWORK}.g.alchemy.com/v2/${ALCHEMY_API_KEY}
 DEF_SCRIPT_FILE := script/Deploy.s.sol
 
 .PHONY: compile deploy deploy-verify test verify
@@ -20,7 +19,7 @@ deploy: build
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build
-	$(call forge_script,$(DEF_SCRIPT_FILE),--rpc-url $(RPC_URL) \
+	$(call forge_script,$(DEF_SCRIPT_FILE),--rpc-url ${RPC_URL} \
 	--private-key ${WALLET_PRIVATE_KEY} \
 	--verifier ${VERIFIER} \
 	--verifier-api-key ${VERIFIER_API_KEY} \
@@ -30,7 +29,7 @@ deploy-verify: build
 
 # Define a pre-existing contract address to verify deployment using the specified network
 verify:
-	forge verify-contract ${address} ${contract} --rpc-url $(RPC_URL) \
+	forge verify-contract ${address} ${contract} --rpc-url ${RPC_URL} \
 		--verifier ${VERIFIER} \
 		--verifier-api-key ${VERIFIER_API_KEY} \
 		--verifier-url ${VERIFIER_URL} \
