@@ -2,14 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Position} from "./Position.sol";
-
-interface ILendingPool {
-    function borrow(uint256 amount) external;
-    function supply(uint256 amount) external;
-    function loanToken() external view returns (address);
-    function collateralToken() external view returns (address);
-    function flashLoan(address token, uint256 amount, bytes calldata data) external;
-}
+import {ILendingPool} from "./interfaces/ILendingPool.sol";
 
 contract PositionFactory {
     event PositionCreated(address positionAddress, address lendingPool, address collateralToken, address loanToken);

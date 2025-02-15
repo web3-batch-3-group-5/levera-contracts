@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {PoolParams} from "../interfaces/ILendingPool.sol";
-import {Position} from "../interfaces/ILendingPosition.sol";
+import {PositionParams} from "../interfaces/ILendingPosition.sol";
 
 library EventLib {
     event AllLendingPool(
@@ -42,19 +42,19 @@ library EventLib {
     );
 
     event SupplyCollateralByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
     );
 
     event WithdrawCollateralByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
     );
 
     event BorrowByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
     );
 
     event RepayByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, Position position
+        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
     );
 
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);

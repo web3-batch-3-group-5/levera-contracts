@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
-import {Position} from "./interfaces/ILendingPosition.sol";
+import {PositionParams} from "./interfaces/ILendingPosition.sol";
 
 contract LendingPosition {}
 
@@ -40,7 +40,7 @@ contract LendingPool {
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
-    mapping(address => mapping(address => Position)) public userPositions;
+    mapping(address => mapping(address => PositionParams)) public userPositions;
 
     constructor(
         IERC20 _loanToken,
@@ -49,11 +49,11 @@ contract LendingPool {
         AggregatorV2V3Interface _collateralTokenUsdPriceFeed
     ) {
         owner = msg.sender;
-        contractId = getContractId(address(_loanToken), address(_collateralToken));
         loanToken = _loanToken;
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
+        contractId = getContractId();
     }
 
     modifier onlyActivePosition(address onBehalf) {
@@ -61,14 +61,14 @@ contract LendingPool {
         _;
     }
 
-    function getContractId(address _loanToken, address _collateralToken) public pure returns (bytes32) {
-        return keccak256(abi.encode(_loanToken, _collateralToken));
+    function getContractId() public view returns (bytes32) {
+        return keccak256(abi.encode(address(loanToken), address(collateralToken)));
     }
 
     function createPosition() public returns (address) {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
-            Position({collateralAmount: 0, borrowShares: 0, timestamp: block.timestamp, isActive: true});
+            PositionParams({collateralAmount: 0, borrowShares: 0, timestamp: block.timestamp, isActive: true});
 
         _updatePosition(address(onBehalf));
         return address(onBehalf);
@@ -79,12 +79,12 @@ contract LendingPool {
         view
         returns (uint256 collateralAmount, uint256 borrowShares, uint256 timestamp, bool isActive)
     {
-        Position storage position = userPositions[msg.sender][onBehalf];
+        PositionParams storage position = userPositions[msg.sender][onBehalf];
         return (position.collateralAmount, position.borrowShares, position.timestamp, position.isActive);
     }
 
     function closePosition(address onBehalf) public onlyActivePosition(onBehalf) {
-        Position storage position = userPositions[msg.sender][onBehalf];
+        PositionParams storage position = userPositions[msg.sender][onBehalf];
         if (position.borrowShares != 0 || position.collateralAmount != 0) revert NonZeroActivePosition();
 
         userPositions[msg.sender][onBehalf].isActive = false;
@@ -195,7 +195,7 @@ contract LendingPool {
         if (amount == 0) revert InvalidAmount();
 
         // Reduce borrow shares
-        Position storage position = userPositions[msg.sender][onBehalf];
+        PositionParams storage position = userPositions[msg.sender][onBehalf];
         if (position.borrowShares < shares) revert InvalidAmount();
 
         position.borrowShares -= shares;
@@ -214,7 +214,7 @@ contract LendingPool {
     }
 
     function _updatePosition(address onBehalf) internal {
-        Position memory position = userPositions[msg.sender][onBehalf];
+        PositionParams memory position = userPositions[msg.sender][onBehalf];
         position.timestamp = block.timestamp;
 
         emit EventLib.UserPosition(
