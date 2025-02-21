@@ -10,14 +10,16 @@ contract Position {
     // Uniswap Router
     address public router = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
+    address public immutable owner;
+    address public immutable creator;
     address public immutable lendingPool;
-    // @TODO: Remove collateralToken & loanToken, use from LendingPool
-    address public immutable collateralToken;
-    address public immutable loanToken;
-    uint256 public initialCollateral;
     uint256 public collateral;
     uint256 public borrowShare;
     uint8 public leverage;
+    uint256 public liquidationPrice;
+    uint256 public health;
+    uint256 public ltv;
+    uint256 public lastUpdated;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 

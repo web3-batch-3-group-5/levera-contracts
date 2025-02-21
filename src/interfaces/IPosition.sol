@@ -10,9 +10,8 @@ struct PositionParams {
 
 interface IPosition {
     function lendingPool() external view returns (address);
-    function baseCollateral() external view returns (uint256);
-    function effectiveCollateral() external view returns (uint256);
-    function borrowShare() external view returns (uint256);
+    function collateral() external view returns (uint256);
+    function borrowShares() external view returns (uint256);
     function leverage() external view returns (uint8);
     function liquidationPrice() external view returns (uint256);
     function health() external view returns (uint256);
