@@ -147,6 +147,7 @@ contract LendingPool {
         if (amount > collateral) revert InsufficientCollateral();
         baseCollateral -= amount;
 
+        _isHealthy(address(this));
         lendingPool.withdrawCollateralByPosition(address(this), amount);
 
         _updatePosition(onBehalf);
@@ -159,7 +160,6 @@ contract LendingPool {
          */
 
         totalCollateral -= amount;
-        _isHealthy(onBehalf);
         IERC20(collateralToken).transfer(msg.sender, amount);
     }
 
@@ -183,17 +183,16 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
-        _isHealthy(onBehalf);
-
+        return shares;
         /*
         inside Position.sol
 
-        uint256 borrowShares = borrowByPosition(...)
+        uint256 shares = borrowByPosition(...)
         borrowShares += shares;
+        _isHealthy();
 
         _updatePosition(onBehalf);
         emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), currPositionParams())
-
          */
     }
 
@@ -217,6 +216,8 @@ contract LendingPool {
         totalBorrowAssets -= amount;
 
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        return share;
+
         /*
         inside Position.sol
 

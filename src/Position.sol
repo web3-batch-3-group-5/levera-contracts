@@ -13,7 +13,8 @@ contract Position {
     address public immutable owner;
     address public immutable creator;
     address public immutable lendingPool;
-    uint256 public collateral;
+    uint256 public baseCollateral;
+    uint256 public effectiveCollateral;
     uint256 public borrowShare;
     uint8 public leverage;
     uint256 public liquidationPrice;
@@ -29,14 +30,42 @@ contract Position {
         loanToken = _loanToken;
     }
 
-    function addLeverage(uint256 amount, uint256 debt) external {
-        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+    function addCollateral(uint256 amount) {
+        _supplyCollateral(amount);
+        _updatePosition();
+    }
 
+    function _supplyCollateral(uint256 amount) {
+        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        baseCollateral += amount;
+
+        lendingPool.supplyCollateralByPosition(address(this), amount);
+
+        emit EventLib.SupplyCollateral(
+            address(lendingPool), msg.sender, address(this), currPositionParams())
+        );
+    }
+
+    function _borrow(uint256 amount) {
+        uint256 shares = ILendingPool(lendingPool).borrowByPosition(address(this), amount);
+        borrowShares += shares;
+        _isHealthy();
+
+        _updatePosition(onBehalf);
+        emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), currPositionParams())
+    }
+
+    function openPosition(uint256 amount, uint256 debt) external {
+        _supplyCollateral(amount);
+        
         flMode = 1;
 
+        _borrow(debt);
         ILendingPool(lendingPool).flashLoan(address(loanToken), debt, "");
 
         flMode = 0;
+
+        _updatePosition();
     }
 
     function onFlashLoan(address token, uint256 amount, bytes calldata) external {
@@ -62,11 +91,14 @@ contract Position {
             })
         );
 
-        collateral += IERC20(collateralToken).balanceOf(address(this));
+        uint256 amountOut = IERC20(collateralToken).balanceOf(address(this));
+        effectiveCollateral += amountOut;
 
         IERC20(collateralToken).approve(address(lendingPool), collateral);
-        ILendingPool(lendingPool).supply(collateral);
+        ILendingPool(lendingPool).supplyCollateralByPosition(address(this), amountOut);
 
-        ILendingPool(lendingPool).borrow(amount);
+        emit EventLib.SupplyCollateral(
+            address(lendingPool), msg.sender, address(this), currPositionParams())
+        );
     }
 }
