@@ -292,4 +292,18 @@ contract LendingPool {
 
         IERC20(token).transferFrom(msg.sender, address(this), amount);
     }
+
+    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
+        uint8 liquidationThreshold = liquidationThresholdPercentage / 100;
+        return uint256(borrowAmount / (effectiveCollateral * liquidationThreshold));
+    }
+
+    function getHealth(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8) {
+        uint8 liquidationThreshold = liquidationThresholdPercentage / 100;
+        return uint8((effectiveCollateral * liquidationThreshold) / borrowAmount);
+    }
+
+    function getLTV(uint256 effectiveCollateral, uint256 borrowShares) external view returns (uint8) {
+        return uint8(borrowShares / effectiveCollateral);
+    }
 }

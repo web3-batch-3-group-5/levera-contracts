@@ -5,17 +5,21 @@ import {Position} from "./Position.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
 
 contract PositionFactory {
-    event PositionCreated(address positionAddress, address lendingPool, address collateralToken, address loanToken);
+    event PositionCreated(address positionAddress, address lendingPool, uint256 _baseCollateral, uint8 _leverag);
 
     mapping(address => bool) public positions;
 
-    function createPosition(address _lendingPool) external returns (address) {
+    function createPosition(address _lendingPool, uint256 _baseCollateral, uint8 _leverage)
+        external
+        returns (address)
+    {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         address loanToken = ILendingPool(_lendingPool).loanToken();
-        address positionAddress = address(new Position(_lendingPool, collateralToken, loanToken));
+
+        address positionAddress = address(new Position(_lendingPool));
 
         positions[positionAddress] = true;
-        emit PositionCreated(positionAddress, _lendingPool, collateralToken, loanToken);
+        emit PositionCreated(positionAddress, _lendingPool, _baseCollateral, _leverage);
         return positionAddress;
     }
 }
