@@ -11,10 +11,13 @@ contract Position {
     address public router = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
     address public immutable lendingPool;
+    // @TODO: Remove collateralToken & loanToken, use from LendingPool
     address public immutable collateralToken;
     address public immutable loanToken;
+    uint256 public initialCollateral;
     uint256 public collateral;
     uint256 public borrowShare;
+    uint8 public leverage;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
@@ -40,7 +43,7 @@ contract Position {
         if (flMode == 1) _flAddLeverage(token, amount);
 
         // repay flashloan
-        IERC20(token).transfer(address(lendingPool), amount);
+        IERC20(token).approve(address(lendingPool), amount);
     }
 
     function _flAddLeverage(address token, uint256 amount) internal {

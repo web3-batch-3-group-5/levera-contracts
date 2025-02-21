@@ -40,6 +40,7 @@ contract LendingPool {
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
+    // @TODO: Remove PositionParams from mapping and the rest of the code
     mapping(address => mapping(address => PositionParams)) public userPositions;
 
     constructor(
@@ -65,6 +66,7 @@ contract LendingPool {
         return keccak256(abi.encode(address(loanToken), address(collateralToken)));
     }
 
+    // @TODO: Remove below fn
     function createPosition() public returns (address) {
         LendingPosition onBehalf = new LendingPosition();
         userPositions[msg.sender][address(onBehalf)] =
@@ -74,6 +76,7 @@ contract LendingPool {
         return address(onBehalf);
     }
 
+    // @TODO: Remove below fn
     function getPosition(address onBehalf)
         public
         view
@@ -83,6 +86,7 @@ contract LendingPool {
         return (position.collateralAmount, position.borrowShares, position.timestamp, position.isActive);
     }
 
+    // @TODO: Remove below fn
     function closePosition(address onBehalf) public onlyActivePosition(onBehalf) {
         PositionParams storage position = userPositions[msg.sender][onBehalf];
         if (position.borrowShares != 0 || position.collateralAmount != 0) revert NonZeroActivePosition();
@@ -213,6 +217,7 @@ contract LendingPool {
         _accrueInterest();
     }
 
+    // @TODO: move to Position
     function _updatePosition(address onBehalf) internal {
         PositionParams memory position = userPositions[msg.sender][onBehalf];
         position.timestamp = block.timestamp;

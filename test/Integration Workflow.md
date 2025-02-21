@@ -17,18 +17,19 @@
   Using PositionFactory
 
   - Create Position contract
-    address positionAddress = new Position(...)
+    address positionAddress = new Position(address lendingPool)
 
-  - Calculate borrowCollateralPrice
-    totalCollateral = collateral x leverage;
-    borrowCollateral = initialCollateral x (leverage - 1);
+  - Calculate borrowCollateralPrice (borrow collateral price in USDC)
+    initialCollateral = 20 ARB;
+    totalCollateral = collateral x leverage; // 20 x 2 = 40
+    borrowCollateral = initialCollateral x (leverage - 1); // 20 x (2 - 1) = 20
 
-    uint totalCollateralPrice = lendingPool.convertCollateral(totalCollateral);
-    uint borrowCollateralPrice = lendingPool.convertCollateral(borrowCollateral);
+    uint totalCollateralPrice = convertCollateral(totalCollateral);
+    uint borrowCollateralPrice = convertCollateral(borrowCollateral); // 20 x 0.5 = 10 USDC
 
     ```
     fn convertCollateral(unit256 collateral) returns(uint256 amount)
-      PriceConverterLib.getConversionRate(collateral, collateralTokenUsdDataFeed, loanTokenUsdDataFeed)
+      PriceConverterLib.getConversionRate(collateral, lendingPool.collateralTokenUsdDataFeed(), lendingPool.loanTokenUsdDataFeed())
     ```
 
   - Calculate LP, LTV and health
@@ -41,7 +42,7 @@
   - fn addLeverage(unit256 initialCollateral, unit256 borrowAmount)
 
     - Add collateral on FlashLoan
-      lendingPool.flashloan(loanToken, borrowAmount)
+      lendingPool.flashloan(loanToken = USDC, borrowAmount = 10 USDC)
 
     - Calculate borrowShare
       lendingPool.convertBorrowAssetToShare(uint256 borrowAmount) returns(unit256 borrowShare)
@@ -63,11 +64,21 @@
 - fn getPosition({ address lendingPool, address msg.sender })
   Using Subgraph
 
-- fn changeLeverage({ address lendingPool, address positionAddress, uint8 collateral, uint8 leverage }) returns(bool status)
+- fn editPosition({ address lendingPool, address positionAddress, uint8 collateral, uint8 leverage }) returns(bool status)
   Using Position
 
   - Calculate the difference
-    newTotalCollateral = collateral x leverage;
+    newTotalCollateral = collateral x leverage; // 20 x 1.5 = 30
 
     - if (newTotalColateral < currTotalColateral)
       diffTotalColateral = currTotalColateral - newTotalColateral
+      fn repayByPosition()
+      collateral --;
+      borrowShare --;
+      totalCollateral --;
+      totalBorrowAsset --;
+      totalBorrowShare --;
+
+    - if (newTotalColateral > currTotalColateral)
+      diffTotalColateral = newTotalColateral - currTotalColateral
+      fn borrowByPosition()
