@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
-import {PositionParams} from "./interfaces/ILendingPosition.sol";
+import {PositionParams} from "./interfaces/IPosition.sol";
 import {PositionType} from "./interfaces/ILendingPool.sol";
 
 contract LendingPosition {}
@@ -64,7 +64,7 @@ contract LendingPool {
         liquidationThresholdPercentage = _liquidationThresholdPercentage;
         positionType = _positionType;
         interestRate = _interestRate;
-        contractId = getContractId();
+        contractId = _getContractId();
     }
 
     modifier onlyActivePosition(address onBehalf) {
@@ -72,7 +72,7 @@ contract LendingPool {
         _;
     }
 
-    function getContractId() public view returns (bytes32) {
+    function _getContractId() public view returns (bytes32) {
         return keccak256(abi.encode(address(loanToken), address(collateralToken)));
     }
 

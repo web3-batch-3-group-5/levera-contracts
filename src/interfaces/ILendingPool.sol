@@ -16,15 +16,31 @@ struct PoolParams {
 }
 
 interface ILendingPool {
+    function creator() external view returns (address);
+    function owner() external view returns (address);
+    function contractId() external view returns (bytes32);
     function loanToken() external view returns (address);
     function collateralToken() external view returns (address);
     function loanTokenUsdDataFeed() external view returns (address);
     function collateralTokenUsdDataFeed() external view returns (address);
-    function getContractId() external view returns (bytes32);
+    function positionType() external view returns (PositionType);
+
+    function totalSupplyAssets() external view returns (uint256);
+    function totalSupplyShares() external view returns (uint256);
+    function totalBorrowAssets() external view returns (uint256);
+    function totalBorrowShares() external view returns (uint256);
+    function liquidationThresholdPercentage() external view returns (uint8);
+    function interestRate() external view returns (uint8);
+    function userSupplyShares(address user) external view returns (uint256);
+    function userPositions(address user, address onBehalf) external view returns (bool);
 
     function supply(uint256 amount) external;
-    function withdraw(uint256 amount) external;
-    function borrow(uint256 amount) external;
+    function withdraw(uint256 shares) external;
+    function supplyCollateralByPosition(address onBehalf, uint256 amount) external;
+    function withdrawCollateralByPosition(address onBehalf, uint256 amount) external;
+    function borrowByPosition(address onBehalf, uint256 amount) external;
+    function repayByPosition(address onBehalf, uint256 shares) external;
+    function accrueInterest() external;
     function flashLoan(address token, uint256 amount, bytes calldata data) external;
 }
 
