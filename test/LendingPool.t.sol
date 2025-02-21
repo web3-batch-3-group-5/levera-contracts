@@ -10,6 +10,7 @@ import {LendingPool, LendingPosition} from "../src/LendingPool.sol";
 import {PriceConverterLib} from "../src/libraries/PriceConverterLib.sol";
 import {PositionFactory} from "../src/PositionFactory.sol";
 import {Position} from "../src/Position.sol";
+import {PositionType} from "../src/interfaces/ILendingPool.sol";
 
 contract LendingPoolTest is Test {
     ERC20Mock public mockUSDC;
@@ -33,8 +34,19 @@ contract LendingPoolTest is Test {
         mockWBTC = new ERC20Mock();
         usdcUsdPriceFeed = new MockV3Aggregator(DECIMALS, USDC_USD_PRICE);
         wbtcUsdPriceFeed = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
+        uint8 liquidationThresholdPercentage = 80;
+        uint8 interestRate = 5;
+        PositionType positionType = PositionType.LONG;
 
-        lendingPool = new LendingPool(mockUSDC, mockWBTC, usdcUsdPriceFeed, wbtcUsdPriceFeed);
+        lendingPool = new LendingPool(
+            mockUSDC,
+            mockWBTC,
+            usdcUsdPriceFeed,
+            wbtcUsdPriceFeed,
+            liquidationThresholdPercentage,
+            interestRate,
+            positionType
+        );
         positionFactory = new PositionFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
@@ -43,6 +55,10 @@ contract LendingPoolTest is Test {
         console.log("USDC/USD Price Feed deployed at:", address(usdcUsdPriceFeed));
         console.log("WBTC/USD Price Feed deployed at:", address(wbtcUsdPriceFeed));
         console.log("Lending Pool deployed at:", address(lendingPool));
+        console.log("Liquidation Threshold Percentage:", liquidationThresholdPercentage);
+        console.log("Interest Rate Percentage:", interestRate);
+        console.log("Position Type (0 = LONG, 1 = SHORT):", uint8(positionType));
+
         console.log("==============================================================");
 
         mockUSDC.mint(alice, 100_000e6);

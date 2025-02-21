@@ -6,6 +6,7 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {PositionParams} from "./interfaces/ILendingPosition.sol";
+import {PositionType} from "./interfaces/ILendingPool.sol";
 
 contract LendingPosition {}
 
@@ -30,13 +31,16 @@ contract LendingPool {
     IERC20 public immutable collateralToken;
     AggregatorV2V3Interface public loanTokenUsdDataFeed;
     AggregatorV2V3Interface public collateralTokenUsdDataFeed;
+    PositionType public positionType;
 
     uint256 public totalSupplyAssets;
     uint256 public totalSupplyShares;
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
     uint256 public ltv = 70;
-    uint256 public borrowRate = 5;
+    uint8 public borrowRate = 5;
+    uint8 public liquidationThresholdPercentage;
+    uint8 public interestRate;
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
@@ -47,13 +51,19 @@ contract LendingPool {
         IERC20 _loanToken,
         IERC20 _collateralToken,
         AggregatorV2V3Interface _loanTokenUsdPriceFeed,
-        AggregatorV2V3Interface _collateralTokenUsdPriceFeed
+        AggregatorV2V3Interface _collateralTokenUsdPriceFeed,
+        uint8 _liquidationThresholdPercentage,
+        uint8 _interestRate,
+        PositionType _positionType
     ) {
         owner = msg.sender;
         loanToken = _loanToken;
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
+        liquidationThresholdPercentage = _liquidationThresholdPercentage;
+        positionType = _positionType;
+        interestRate = _interestRate;
         contractId = getContractId();
     }
 
@@ -234,7 +244,7 @@ contract LendingPool {
     }
 
     function _accrueInterest() internal {
-        uint256 interestPerYear = totalBorrowAssets * borrowRate / 100;
+        uint256 interestPerYear = totalBorrowAssets * interestRate / 100;
         uint256 elapsedTime = block.timestamp - lastAccrued;
 
         uint256 interest = (interestPerYear * elapsedTime) / 365 days;
@@ -244,7 +254,7 @@ contract LendingPool {
 
         lastAccrued = block.timestamp;
 
-        emit EventLib.AccrueInterest(address(this), borrowRate, interest);
+        emit EventLib.AccrueInterest(address(this), interestRate, interest);
     }
 
     function _isHealthy(address onBehalf) internal view {

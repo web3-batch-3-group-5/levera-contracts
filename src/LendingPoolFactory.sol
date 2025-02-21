@@ -7,6 +7,7 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PoolParams} from "./interfaces/ILendingPool.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {LendingPool} from "./LendingPool.sol";
+import {PositionType} from "./interfaces/ILendingPool.sol";
 
 contract LendingPoolFactory {
     error NotALendingPool();
@@ -37,7 +38,10 @@ contract LendingPoolFactory {
         address loanToken,
         address collateralToken,
         address loanTokenUsdDataFeed,
-        address collateralTokenUsdDataFeed
+        address collateralTokenUsdDataFeed,
+        uint8 liquidationThresholdPercentage,
+        uint8 interestRate,
+        PositionType positionType
     ) external returns (address) {
         bytes32 id = keccak256(abi.encode(loanToken, collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
@@ -46,7 +50,10 @@ contract LendingPoolFactory {
             IERC20(loanToken),
             IERC20(collateralToken),
             AggregatorV2V3Interface(loanTokenUsdDataFeed),
-            AggregatorV2V3Interface(collateralTokenUsdDataFeed)
+            AggregatorV2V3Interface(collateralTokenUsdDataFeed),
+            liquidationThresholdPercentage,
+            interestRate,
+            PositionType(positionType)
         );
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
