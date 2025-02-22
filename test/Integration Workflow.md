@@ -1,4 +1,4 @@
-#Create LendingPool
+# Create LendingPool
 
 - Using LendingPoolFactory
   fn createLendingPool({
@@ -82,3 +82,33 @@
     - if (newTotalColateral > currTotalColateral)
       diffTotalColateral = newTotalColateral - currTotalColateral
       fn borrowByPosition()
+
+# fn updateLeverage( uint256 leverage );
+NOTE : 
+- Increasing leverage: Borrowing more funds against existing collateral.
+- Decreasing leverage: Repaying part of the borrowed funds and reducing exposure.
+
+- calculate to decide if its short or long
+
+// find the borrow amount
+ - uint256 oldBorrowAmount = borrowAmount;
+ - newBorrowAmount = convertCollateral(baseCollateral * (_newLeverage - 1));
+
+  if increase leverage: 
+      uint256 additionalBorrow = newBorrowAmount - oldBorrowAmount;
+      borrow as aditionalBorrow amount // include update borrowshares
+      panggil flashloan
+  if decrease leverage:
+      repay by position
+
+- Handle increasing/decreasing stuff : calculation in excel
+
+    effectiveCollateral = newEffectiveCollateral;
+    borrowShares = (newBorrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
+    liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, newBorrowAmount);
+    health = lendingPool.getHealth(effectiveCollateral, newBorrowAmount);
+    ltv = lendingPool.getLTV(effectiveCollateral, newBorrowAmount);
+-  _emitUpdatePosition();
+
+# fn close Position
+

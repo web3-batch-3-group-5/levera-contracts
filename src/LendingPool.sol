@@ -149,7 +149,7 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
-        return shares; // ✅ Correctly returns the calculated shares
+        return shares;
     }
 
     function repayByPosition(address onBehalf, uint256 amount)
@@ -220,11 +220,11 @@ contract LendingPool {
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
-        return uint256(borrowAmount * 100 / (effectiveCollateral * liquidationThreshold));
+        return uint256(borrowAmount * 100 / (effectiveCollateral * liquidationThresholdPercentage));
     }
 
     function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
-        return uint8((effectiveCollateralPrice * liquidationThreshold) / (borrowAmount * 100));
+        return uint8((effectiveCollateralPrice * liquidationThresholdPercentage) / (borrowAmount * 100));
     }
 
     function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
