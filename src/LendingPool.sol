@@ -173,7 +173,7 @@ contract LendingPool {
 
         _accrueInterest();
 
-        uint256 shares = 0;
+        // uint256 shares = 0;
         if (totalBorrowAssets == 0) {
             shares = amount;
         } else {
@@ -205,7 +205,7 @@ contract LendingPool {
 
         if (totalBorrowShares == 0) revert InvalidAmount();
 
-        uint256 shares = 0;
+        // uint256 shares = 0;
         if (totalBorrowAssets == 0) {
             shares = amount;
         } else {
@@ -216,7 +216,7 @@ contract LendingPool {
         totalBorrowAssets -= amount;
 
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        return share;
+        return shares;
 
         /*
         inside Position.sol
@@ -238,22 +238,6 @@ contract LendingPool {
         _accrueInterest();
     }
 
-    // @TODO: move to Position
-    function _updatePosition(address onBehalf) internal {
-        PositionParams memory position = userPositions[msg.sender][onBehalf];
-        position.timestamp = block.timestamp;
-
-        emit EventLib.UserPosition(
-            address(this),
-            msg.sender,
-            onBehalf,
-            position.collateralAmount,
-            position.borrowShares,
-            position.timestamp,
-            position.isActive
-        );
-    }
-
     function _accrueInterest() internal {
         uint256 interestPerYear = totalBorrowAssets * interestRate / 100;
         uint256 elapsedTime = block.timestamp - lastAccrued;
@@ -266,20 +250,6 @@ contract LendingPool {
         lastAccrued = block.timestamp;
 
         emit EventLib.AccrueInterest(address(this), interestRate, interest);
-    }
-
-    function _isHealthy(address onBehalf) internal view {
-        uint256 borrowShares = userPositions[msg.sender][onBehalf].borrowShares;
-        uint256 collateral = PriceConverterLib.getConversionRate(
-            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
-        );
-
-        uint256 borrowAmount = totalBorrowShares == 0 ? 0 : (borrowShares * totalBorrowAssets) / totalBorrowShares;
-        // Ensure borrowed doesn't exceed collateral before subtraction
-        if (borrowAmount > collateral) revert InsufficientCollateral();
-
-        uint256 allowedBorrowAmount = (collateral - borrowAmount) * ltv / 100;
-        if (borrowAmount > allowedBorrowAmount) revert InsufficientCollateral();
     }
 
     // flashloan
@@ -298,12 +268,12 @@ contract LendingPool {
         return uint256(borrowAmount / (effectiveCollateral * liquidationThreshold));
     }
 
-    function getHealth(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8) {
+    function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
         uint8 liquidationThreshold = liquidationThresholdPercentage / 100;
-        return uint8((effectiveCollateral * liquidationThreshold) / borrowAmount);
+        return uint8((effectiveCollateralPrice * liquidationThreshold) / borrowAmount);
     }
 
-    function getLTV(uint256 effectiveCollateral, uint256 borrowShares) external view returns (uint8) {
-        return uint8(borrowShares / effectiveCollateral);
+    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowShares) external view returns (uint8) {
+        return uint8(borrowShares / effectiveCollateralPrice);
     }
 }

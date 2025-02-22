@@ -35,10 +35,16 @@ library EventLib {
         address indexed lendingPool,
         address indexed caller,
         address indexed onBehalf,
-        uint256 collateralAmount,
+        uint256 baseCollateral,
+        uint256 effectiveCollateral,
         uint256 borrowShares,
         uint256 timestamp,
-        bool isActive
+        address loanToken,
+        address collateralToken,
+        uint8 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
 
     event SupplyCollateralByPosition(

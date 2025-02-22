@@ -43,6 +43,10 @@ interface ILendingPool {
     function repayByPosition(address onBehalf, uint256 shares) external;
     function accrueInterest() external;
     function flashLoan(address token, uint256 amount, bytes calldata data) external;
+
+    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256);
+    function getHealth(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256);
+    function getLTV(uint256 effectiveCollateral, uint256 borrowShares) external view returns (uint256);
 }
 
 interface ISwapRouter {

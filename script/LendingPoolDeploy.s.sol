@@ -38,6 +38,7 @@ contract LendingPoolDeploy is Script {
         IERC20 mockWBTC = IERC20(0xe7d9E1dB89Ce03570CBA7f4C6Af80EC14a61d1db);
         uint8 liquidationThresholdPercentage = 80;
         uint8 interestRate = 5;
+        address alice = makeAddr("alice");
         PositionType positionType = PositionType.LONG;
         lendingPool = new LendingPool(
             mockUSDC,
@@ -46,7 +47,8 @@ contract LendingPoolDeploy is Script {
             wbtcAggregator,
             liquidationThresholdPercentage,
             interestRate,
-            positionType
+            positionType,
+            alice
         );
 
         console.log("==================DEPLOYED ADDRESSES==========================");

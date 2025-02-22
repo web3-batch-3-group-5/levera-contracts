@@ -16,7 +16,10 @@ contract PositionFactory {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         address loanToken = ILendingPool(_lendingPool).loanToken();
 
-        address positionAddress = address(new Position(_lendingPool));
+        Position newPosition = new Position(_lendingPool, collateralToken);
+        address positionAddress = address(newPosition);
+
+        newPosition.initialize(_baseCollateral, _leverage);
 
         positions[positionAddress] = true;
         emit PositionCreated(positionAddress, _lendingPool, _baseCollateral, _leverage);

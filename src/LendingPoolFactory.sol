@@ -53,7 +53,8 @@ contract LendingPoolFactory {
             AggregatorV2V3Interface(collateralTokenUsdDataFeed),
             liquidationThresholdPercentage,
             interestRate,
-            PositionType(positionType)
+            PositionType(positionType),
+            msg.sender
         );
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
