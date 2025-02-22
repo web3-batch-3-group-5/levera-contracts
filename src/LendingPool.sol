@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
-import {PositionParams, IPosition} from "./interfaces/IPosition.sol";
+import {IPosition} from "./interfaces/IPosition.sol";
 import {PositionType} from "./interfaces/ILendingPool.sol";
 
 interface IFlashLoanCallback {
@@ -121,21 +121,6 @@ contract LendingPool {
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        /*
-        inside Position.sol
-        
-        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
-        baseCollateral += amount;
-
-        lendingPool.supplyCollateralByPosition(address(this), amount);
-
-        _updatePosition(onBehalf);
-        emit EventLib.SupplyCollateralByPosition(
-            address(lendingPool), msg.sender, address(this), currPositionParams())
-        );
-
-         */
-
         totalCollateral += amount;
         IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
     }
@@ -254,16 +239,14 @@ contract LendingPool {
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
-        uint8 liquidationThreshold = liquidationThresholdPercentage / 100;
-        return uint256(borrowAmount / (effectiveCollateral * liquidationThreshold));
+        return uint256(borrowAmount * 100 / (effectiveCollateral * liquidationThreshold));
     }
 
     function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
-        uint8 liquidationThreshold = liquidationThresholdPercentage / 100;
-        return uint8((effectiveCollateralPrice * liquidationThreshold) / borrowAmount);
+        return uint8((effectiveCollateralPrice * liquidationThreshold) / (borrowAmount * 100));
     }
 
-    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowShares) external view returns (uint8) {
-        return uint8(borrowShares / effectiveCollateralPrice);
+    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
+        return uint8(borrowAmount / effectiveCollateralPrice);
     }
 }

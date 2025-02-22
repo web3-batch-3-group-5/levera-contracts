@@ -32,7 +32,7 @@ contract Position {
         lendingPool = ILendingPool(_lendingPool);
     }
 
-    function _updatePosition() internal {
+    function _emitUpdatePosition() internal {
         lastUpdated = block.timestamp;
 
         emit EventLib.UserPosition(
@@ -138,12 +138,12 @@ contract Position {
         borrowShares = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
         liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateralPrice, borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
-        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowShares);
+        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
     }
 
     function addCollateral(uint256 amount) public {
         _supplyCollateral(amount);
-        _updatePosition();
+        _emitUpdatePosition();
     }
 
     function _supplyCollateral(uint256 amount) public {
@@ -160,7 +160,7 @@ contract Position {
         borrowShares += shares; // ✅ Updates borrowShares
         _isHealthy();
 
-        _updatePosition();
+        _emitUpdatePosition();
         _emitBorrow();
     }
 
@@ -174,7 +174,7 @@ contract Position {
 
         flMode = 0;
 
-        _updatePosition();
+        _emitUpdatePosition();
     }
 
     function onFlashLoan(address token, uint256 amount, bytes calldata) external {

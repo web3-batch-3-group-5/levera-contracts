@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {PoolParams} from "../interfaces/ILendingPool.sol";
-import {PositionParams} from "../interfaces/IPosition.sol";
 
 library EventLib {
     event AllLendingPool(
