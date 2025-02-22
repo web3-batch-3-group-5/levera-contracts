@@ -19,7 +19,7 @@ contract Position {
     ILendingPool public immutable lendingPool;
     uint256 public baseCollateral; // Represents the initial collateral amount.
     uint256 public effectiveCollateral; // Represents the total collateral after including borrowed collateral.
-    uint256 public borrowShare;
+    uint256 public borrowShares;
     uint8 public leverage;
     uint256 public liquidationPrice;
     uint256 public health;
@@ -39,12 +39,79 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            baseCollateral,
-            effectiveCollateral,
-            borrowShare,
-            lastUpdated,
             lendingPool.loanToken(),
             lendingPool.collateralToken(),
+            baseCollateral,
+            effectiveCollateral,
+            borrowShares,
+            leverage,
+            liquidationPrice,
+            health,
+            ltv
+        );
+    }
+
+    function _emitSupplyCollateral(string memory action) internal {
+        emit EventLib.SupplyCollateral(
+            address(lendingPool),
+            msg.sender,
+            address(this),
+            lendingPool.loanToken(),
+            lendingPool.collateralToken(),
+            baseCollateral,
+            effectiveCollateral,
+            borrowShares,
+            leverage,
+            liquidationPrice,
+            health,
+            ltv
+        );
+    }
+
+    function _emitWithdrawCollateral(string memory action) internal {
+        emit EventLib.WithdrawCollateral(
+            address(lendingPool),
+            msg.sender,
+            address(this),
+            lendingPool.loanToken(),
+            lendingPool.collateralToken(),
+            baseCollateral,
+            effectiveCollateral,
+            borrowShares,
+            leverage,
+            liquidationPrice,
+            health,
+            ltv
+        );
+    }
+
+    function _emitBorrow(string memory action) internal {
+        emit EventLib.Borrow(
+            address(lendingPool),
+            msg.sender,
+            address(this),
+            lendingPool.loanToken(),
+            lendingPool.collateralToken(),
+            baseCollateral,
+            effectiveCollateral,
+            borrowShares,
+            leverage,
+            liquidationPrice,
+            health,
+            ltv
+        );
+    }
+
+    function _emitRepay(string memory action) internal {
+        emit EventLib.Repay(
+            address(lendingPool),
+            msg.sender,
+            address(this),
+            lendingPool.loanToken(),
+            lendingPool.collateralToken(),
+            baseCollateral,
+            effectiveCollateral,
+            borrowShares,
             leverage,
             liquidationPrice,
             health,
@@ -68,10 +135,10 @@ contract Position {
         uint256 effectiveCollateralPrice = convertCollateral(effectiveCollateral);
         uint256 borrowAmount = convertCollateral(baseCollateral) * (_leverage - 1);
 
-        borrowShare = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
+        borrowShares = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
         liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateralPrice, borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
-        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowShare);
+        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowShares);
     }
 
     function addCollateral(uint256 amount) public {
@@ -85,16 +152,16 @@ contract Position {
 
         lendingPool.supplyCollateralByPosition(address(this), amount);
 
-        // emit EventLib.SupplyCollateralByPosition(address(lendingPool), msg.sender, address(this), positionData());
+        _emitSupplyCollateral();
     }
 
     function _borrow(uint256 amount) public {
         uint256 shares = lendingPool.borrowByPosition(address(this), amount); // Now correctly returns shares
-        borrowShare += shares; // ✅ Updates borrowShare
+        borrowShares += shares; // ✅ Updates borrowShares
         _isHealthy();
 
         _updatePosition();
-        // emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), positionData());
+        _emitBorrow();
     }
 
     function openPosition(uint256 amount, uint256 debt) external {
@@ -139,7 +206,7 @@ contract Position {
         IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
         lendingPool.supplyCollateralByPosition(address(this), amountOut);
 
-        // emit EventLib.SupplyCollateral(address(lendingPool), msg.sender, address(this), positionData());
+        _emitSupplyCollateral();
     }
 
     function _isHealthy() internal view {
@@ -147,7 +214,7 @@ contract Position {
 
         uint256 borrowAmount = lendingPool.totalBorrowShares() == 0
             ? 0
-            : (borrowShare * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
+            : (borrowShares * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
         // Ensure borrowed doesn't exceed collateral before subtraction
         if (borrowAmount > collateral) revert InsufficientCollateral();
 

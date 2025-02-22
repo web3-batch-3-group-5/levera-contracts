@@ -35,32 +35,76 @@ library EventLib {
         address indexed lendingPool,
         address indexed caller,
         address indexed onBehalf,
+        address loanToken,
+        address collateralToken,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
         uint256 timestamp,
-        address loanToken,
-        address collateralToken,
         uint8 leverage,
         uint256 liquidationPrice,
         uint256 health,
         uint256 ltv
     );
 
-    event SupplyCollateralByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
+    event SupplyCollateral(
+        address indexed lendingPool,
+        address indexed caller,
+        address indexed onBehalf,
+        address loanToken,
+        address collateralToken,
+        uint256 baseCollateral,
+        uint256 effectiveCollateral,
+        uint256 borrowShares,
+        uint8 leverage,
+        uint8 liquidationPrice,
+        uint8 health,
+        uint8 ltv
     );
 
-    event WithdrawCollateralByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
+    event WithdrawCollateral(
+        address indexed lendingPool,
+        address indexed caller,
+        address indexed onBehalf,
+        address loanToken,
+        address collateralToken,
+        uint256 baseCollateral,
+        uint256 effectiveCollateral,
+        uint256 borrowShares,
+        uint8 leverage,
+        uint8 liquidationPrice,
+        uint8 health,
+        uint8 ltv
     );
 
-    event BorrowByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
+    event Borrow(
+        address indexed lendingPool,
+        address indexed caller,
+        address indexed onBehalf,
+        address loanToken,
+        address collateralToken,
+        uint256 baseCollateral,
+        uint256 effectiveCollateral,
+        uint256 borrowShares,
+        uint8 leverage,
+        uint8 liquidationPrice,
+        uint8 health,
+        uint8 ltv
     );
 
-    event RepayByPosition(
-        address indexed lendingPool, address indexed caller, address indexed onBehalf, PositionParams position
+    event Repay(
+        address indexed lendingPool,
+        address indexed caller,
+        address indexed onBehalf,
+        address loanToken,
+        address collateralToken,
+        uint256 baseCollateral,
+        uint256 effectiveCollateral,
+        uint256 borrowShares,
+        uint8 leverage,
+        uint8 liquidationPrice,
+        uint8 health,
+        uint8 ltv
     );
 
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);

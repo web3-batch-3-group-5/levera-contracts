@@ -2,12 +2,12 @@
 pragma solidity ^0.8.13;
 
 struct PositionParams {
+    address loanToken;
+    address collateralToken;
     uint256 baseCollateral;
     uint256 effectiveCollateral;
     uint256 borrowShares;
     uint256 lastUpdated;
-    address loanToken;
-    address collateralToken;
     uint8 leverage;
     uint8 liquidationPrice;
     uint8 health;
