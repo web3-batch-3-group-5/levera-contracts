@@ -10,6 +10,8 @@ import {EventLib} from "./libraries/EventLib.sol";
 contract Position {
     error InvalidToken();
     error InsufficientCollateral();
+    error ZeroAddress();
+    error ZeroAmount();
 
     // Uniswap Router
     address public router = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
@@ -21,9 +23,9 @@ contract Position {
     uint256 public effectiveCollateral; // Represents the total collateral after including borrowed collateral.
     uint256 public borrowShares;
     uint8 public leverage;
-    uint256 public liquidationPrice;
-    uint256 public health;
-    uint256 public ltv;
+    uint8 public liquidationPrice;
+    uint8 public health;
+    uint8 public ltv;
     uint256 public lastUpdated;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
@@ -44,6 +46,7 @@ contract Position {
             baseCollateral,
             effectiveCollateral,
             borrowShares,
+            lastUpdated,
             leverage,
             liquidationPrice,
             health,
@@ -51,7 +54,7 @@ contract Position {
         );
     }
 
-    function _emitSupplyCollateral(string memory action) internal {
+    function _emitSupplyCollateral() internal {
         emit EventLib.SupplyCollateral(
             address(lendingPool),
             msg.sender,
@@ -68,7 +71,7 @@ contract Position {
         );
     }
 
-    function _emitWithdrawCollateral(string memory action) internal {
+    function _emitWithdrawCollateral() internal {
         emit EventLib.WithdrawCollateral(
             address(lendingPool),
             msg.sender,
@@ -85,7 +88,7 @@ contract Position {
         );
     }
 
-    function _emitBorrow(string memory action) internal {
+    function _emitBorrow() internal {
         emit EventLib.Borrow(
             address(lendingPool),
             msg.sender,
@@ -102,7 +105,7 @@ contract Position {
         );
     }
 
-    function _emitRepay(string memory action) internal {
+    function _emitRepay() internal {
         emit EventLib.Repay(
             address(lendingPool),
             msg.sender,
@@ -166,7 +169,7 @@ contract Position {
         _emitUpdatePosition();
         _emitWithdrawCollateral();
 
-        IERC20(collateralToken).transfer(msg.sender, amount);
+        IERC20(lendingPool.collateralToken()).transfer(msg.sender, amount);
     }
 
     function _borrow(uint256 amount) internal {

@@ -7,18 +7,27 @@ import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
+import {PositionFactory} from "../src/PositionFactory.sol";
 
 contract Deploy is Script {
-    function run() public {
+    function deployFactory() public returns (LendingPoolFactory, PositionFactory, MockFactory) {
         vm.startBroadcast();
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory();
-        // MockFactory mockFactory = new MockFactory();
+        PositionFactory positionFactory = new PositionFactory();
+        MockFactory mockFactory = new MockFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
-        // console.log("Mock Factory deployed at:", address(mockFactory));
+        console.log("Position Factory deployed at:", address(positionFactory));
+        console.log("Mock Factory deployed at:", address(mockFactory));
         console.log("==============================================================");
 
         vm.stopBroadcast();
+
+        return (lendingPoolFactory, positionFactory, mockFactory);
+    }
+
+    function run() external returns (LendingPoolFactory, PositionFactory, MockFactory) {
+        return deployFactory();
     }
 }

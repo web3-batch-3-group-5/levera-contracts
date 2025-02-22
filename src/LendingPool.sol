@@ -37,21 +37,19 @@ contract LendingPool {
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
     uint256 public totalCollateral;
-    uint256 public ltv = 70;
-    uint8 public liquidationThresholdPercentage;
+    uint8 public ltp; // Liquidation Threshold Percentage
     uint8 public interestRate;
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
     mapping(address => mapping(address => bool)) public userPositions;
-    // mapping(address => mapping(address => bool)) public isPositionActive;
 
     constructor(
         IERC20 _loanToken,
         IERC20 _collateralToken,
         AggregatorV2V3Interface _loanTokenUsdPriceFeed,
         AggregatorV2V3Interface _collateralTokenUsdPriceFeed,
-        uint8 _liquidationThresholdPercentage,
+        uint8 _ltp,
         uint8 _interestRate,
         PositionType _positionType,
         address _creator
@@ -62,7 +60,7 @@ contract LendingPool {
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
-        liquidationThresholdPercentage = _liquidationThresholdPercentage;
+        ltp = _ltp;
         positionType = _positionType;
         interestRate = _interestRate;
         contractId = _getContractId();
@@ -219,15 +217,20 @@ contract LendingPool {
         IERC20(token).transferFrom(msg.sender, address(this), amount);
     }
 
-    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
-        return uint256(borrowAmount * 100 / (effectiveCollateral * liquidationThreshold));
+    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8) {
+        return uint8(borrowAmount * 100 / (effectiveCollateral * ltp));
     }
 
     function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
-        return uint8((effectiveCollateralPrice * liquidationThreshold) / (borrowAmount * 100));
+        return uint8((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
     }
 
     function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
         return uint8(borrowAmount / effectiveCollateralPrice);
+    }
+
+    function getUtilizationRate() external view returns (uint256) {
+        if (totalBorrowAssets == 0) return 0;
+        return totalSupplyAssets * 100 / totalBorrowAssets;
     }
 }
