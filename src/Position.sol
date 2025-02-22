@@ -9,6 +9,7 @@ import {EventLib} from "./libraries/EventLib.sol";
 
 contract Position {
     error InvalidToken();
+    error InsufficientCollateral();
 
     // Uniswap Router
     address public router = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
@@ -42,8 +43,8 @@ contract Position {
             effectiveCollateral,
             borrowShare,
             lastUpdated,
-            ILendingPool(lendingPool).loanToken(),
-            ILendingPool(lendingPool).collateralToken(),
+            lendingPool.loanToken(),
+            lendingPool.collateralToken(),
             leverage,
             liquidationPrice,
             health,
@@ -54,8 +55,8 @@ contract Position {
     function convertCollateral(uint256 effectiveCollateralAmount) public view returns (uint256 amount) {
         return PriceConverterLib.getConversionRate(
             effectiveCollateralAmount,
-            AggregatorV2V3Interface(ILendingPool(lendingPool).collateralTokenUsdDataFeed()),
-            AggregatorV2V3Interface(ILendingPool(lendingPool).loanTokenUsdDataFeed())
+            AggregatorV2V3Interface(lendingPool.collateralTokenUsdDataFeed()),
+            AggregatorV2V3Interface(lendingPool.loanTokenUsdDataFeed())
         );
     }
 
@@ -84,16 +85,16 @@ contract Position {
 
         lendingPool.supplyCollateralByPosition(address(this), amount);
 
-        emit EventLib.SupplyCollateralByPosition(address(lendingPool), msg.sender, address(this), address(this));
+        // emit EventLib.SupplyCollateralByPosition(address(lendingPool), msg.sender, address(this), positionData());
     }
 
     function _borrow(uint256 amount) public {
-        uint256 shares = ILendingPool(lendingPool).borrowByPosition(address(this), amount);
-        borrowShare += shares;
-        lendingPool._isHealthy();
+        uint256 shares = lendingPool.borrowByPosition(address(this), amount); // Now correctly returns shares
+        borrowShare += shares; // ✅ Updates borrowShare
+        _isHealthy();
 
         _updatePosition();
-        emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), address(this));
+        // emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), positionData());
     }
 
     function openPosition(uint256 amount, uint256 debt) external {
@@ -135,18 +136,18 @@ contract Position {
         uint256 amountOut = IERC20(ILendingPool(lendingPool).collateralToken()).balanceOf(address(this));
         effectiveCollateral += amountOut;
 
-        IERC20(lendingPool.collateralToken).approve(address(lendingPool), amountOut);
+        IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
         lendingPool.supplyCollateralByPosition(address(this), amountOut);
 
-        emit EventLib.SupplyCollateral(address(lendingPool), msg.sender, address(this), address(this));
+        // emit EventLib.SupplyCollateral(address(lendingPool), msg.sender, address(this), positionData());
     }
 
-    function _isHealthy(address onBehalf) internal view {
-        uint256 collateral = PriceConverterLib.getConversionRate(
-            userPositions[msg.sender][onBehalf].collateralAmount, collateralTokenUsdDataFeed, loanTokenUsdDataFeed
-        );
+    function _isHealthy() internal view {
+        uint256 collateral = convertCollateral(baseCollateral);
 
-        uint256 borrowAmount = totalBorrowShares == 0 ? 0 : (borrowShare * totalBorrowAssets) / totalBorrowShares;
+        uint256 borrowAmount = lendingPool.totalBorrowShares() == 0
+            ? 0
+            : (borrowShare * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
         // Ensure borrowed doesn't exceed collateral before subtraction
         if (borrowAmount > collateral) revert InsufficientCollateral();
 

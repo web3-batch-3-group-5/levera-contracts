@@ -39,7 +39,7 @@ interface ILendingPool {
     function withdraw(uint256 shares) external;
     function supplyCollateralByPosition(address onBehalf, uint256 amount) external;
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) external;
-    function borrowByPosition(address onBehalf, uint256 amount) external;
+    function borrowByPosition(address onBehalf, uint256 amount) external returns (uint256);
     function repayByPosition(address onBehalf, uint256 shares) external;
     function accrueInterest() external;
     function flashLoan(address token, uint256 amount, bytes calldata data) external;

@@ -2,10 +2,16 @@
 pragma solidity ^0.8.13;
 
 struct PositionParams {
-    uint256 collateralAmount;
+    uint256 baseCollateral;
+    uint256 effectiveCollateral;
     uint256 borrowShares;
-    uint256 timestamp;
-    bool isActive;
+    uint256 lastUpdated;
+    address loanToken;
+    address collateralToken;
+    uint8 leverage;
+    uint8 liquidationPrice;
+    uint8 health;
+    uint8 ltv;
 }
 
 interface IPosition {
@@ -24,4 +30,5 @@ interface IPosition {
     function editPosition(address lendingPool, address onBehalf, uint256 baseCollateral, uint8 leverage)
         external
         returns (bool);
+    function initialization(uint256 _baseCollateral, uint8 _leverage) external;
 }

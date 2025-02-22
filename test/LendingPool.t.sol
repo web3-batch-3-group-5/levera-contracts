@@ -45,7 +45,8 @@ contract LendingPoolTest is Test {
             wbtcUsdPriceFeed,
             liquidationThresholdPercentage,
             interestRate,
-            positionType
+            positionType,
+            alice
         );
         positionFactory = new PositionFactory();
 
@@ -81,9 +82,9 @@ contract LendingPoolTest is Test {
         lendingPool.withdrawCollateralByPosition(onBehalf, amount);
     }
 
-    function createPosition() internal returns (address) {
-        return address(lendingPool.createPosition());
-    }
+    // function createPosition() internal returns (address) {
+    //     return address(lendingPool.createPosition());
+    // }
 
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;

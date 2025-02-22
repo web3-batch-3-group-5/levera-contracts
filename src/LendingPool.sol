@@ -43,7 +43,8 @@ contract LendingPool {
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => uint256) public userSupplyShares;
-    mapping(address => mapping(address => PositionParams)) public userPositions;
+    mapping(address => mapping(address => bool)) public userPositions;
+    // mapping(address => mapping(address => bool)) public isPositionActive;
 
     constructor(
         IERC20 _loanToken,
@@ -173,7 +174,6 @@ contract LendingPool {
 
         _accrueInterest();
 
-        // uint256 shares = 0;
         if (totalBorrowAssets == 0) {
             shares = amount;
         } else {
@@ -183,17 +183,7 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
-        return shares;
-        /*
-        inside Position.sol
-
-        uint256 shares = borrowByPosition(...)
-        borrowShares += shares;
-        _isHealthy();
-
-        _updatePosition(onBehalf);
-        emit EventLib.BorrowByPosition(address(lendingPool), msg.sender, address(this), currPositionParams())
-         */
+        return shares; // ✅ Correctly returns the calculated shares
     }
 
     function repayByPosition(address onBehalf, uint256 amount)
