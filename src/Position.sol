@@ -204,10 +204,15 @@ contract Position {
     }
 
     function _flAddLeverage(address token, uint256 amount) internal {
+        uint256 amountOut = _swap(token, ILendingPool(lendingPool).collateralToken(), amount);
+        effectiveCollateral += amountOut;
+    }
+
+    function _swap(address loanToken, address collateralToken, uint256 amount) internal returns (uint256) {
         ISwapRouter(router).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: token,
-                tokenOut: ILendingPool(lendingPool).collateralToken(),
+                tokenIn: loanToken,
+                tokenOut: collateralToken,
                 fee: 500,
                 recipient: address(this),
                 deadline: block.timestamp,
@@ -218,12 +223,13 @@ contract Position {
         );
 
         uint256 amountOut = IERC20(ILendingPool(lendingPool).collateralToken()).balanceOf(address(this));
-        effectiveCollateral += amountOut;
 
         IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
         lendingPool.supplyCollateralByPosition(address(this), amountOut);
 
         _emitSupplyCollateral();
+
+        return (amountOut);
     }
 
     function _isHealthy() internal view {
