@@ -126,25 +126,6 @@ contract LendingPool {
     }
 
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
-        /*
-        inside Position.sol
-        
-        if (amount == 0) revert ZeroAmount();
-        if (amount > collateral) revert InsufficientCollateral();
-        baseCollateral -= amount;
-
-        _isHealthy(address(this));
-        lendingPool.withdrawCollateralByPosition(address(this), amount);
-
-        _updatePosition(onBehalf);
-        emit EventLib.WithdrawCollateralByPosition(
-            address(lendingPool), msg.sender, address(this), currPositionParams())
-        );
-
-        IERC20(collateralToken).transfer(msg.sender, amount);
-
-         */
-
         totalCollateral -= amount;
         IERC20(collateralToken).transfer(msg.sender, amount);
     }

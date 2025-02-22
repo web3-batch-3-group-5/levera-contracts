@@ -133,10 +133,10 @@ contract Position {
         effectiveCollateral = _baseCollateral * leverage;
 
         uint256 effectiveCollateralPrice = convertCollateral(effectiveCollateral);
-        uint256 borrowAmount = convertCollateral(baseCollateral) * (_leverage - 1);
+        uint256 borrowAmount = convertCollateral(baseCollateral * (_leverage - 1));
 
         borrowShares = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
-        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateralPrice, borrowAmount);
+        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
         ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
     }
@@ -146,7 +146,7 @@ contract Position {
         _emitUpdatePosition();
     }
 
-    function _supplyCollateral(uint256 amount) public {
+    function _supplyCollateral(uint256 amount) internal {
         IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), amount);
         baseCollateral += amount;
 
@@ -155,12 +155,24 @@ contract Position {
         _emitSupplyCollateral();
     }
 
-    function _borrow(uint256 amount) public {
+    function withdrawCollateral(uint256 amount) public {
+        if (amount == 0) revert ZeroAmount();
+        if (amount > baseCollateral) revert InsufficientCollateral();
+        baseCollateral -= amount;
+
+        _isHealthy();
+        lendingPool.withdrawCollateralByPosition(address(this), amount);
+
+        _emitUpdatePosition();
+        _emitWithdrawCollateral();
+
+        IERC20(collateralToken).transfer(msg.sender, amount);
+    }
+
+    function _borrow(uint256 amount) internal {
         uint256 shares = lendingPool.borrowByPosition(address(this), amount); // Now correctly returns shares
         borrowShares += shares; // ✅ Updates borrowShares
         _isHealthy();
-
-        _emitUpdatePosition();
         _emitBorrow();
     }
 
