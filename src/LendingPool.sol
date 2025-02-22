@@ -147,7 +147,7 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
-        return shares; // ✅ Correctly returns the calculated shares
+        return shares;
     }
 
     function repayByPosition(address onBehalf, uint256 amount)

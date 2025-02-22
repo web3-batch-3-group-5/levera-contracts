@@ -10,6 +10,8 @@ import {EventLib} from "./libraries/EventLib.sol";
 contract Position {
     error InvalidToken();
     error InsufficientCollateral();
+    error InsufficientMinimumLeverage();
+    error LeverageTooHigh();
     error ZeroAddress();
     error ZeroAmount();
 
@@ -173,8 +175,8 @@ contract Position {
     }
 
     function _borrow(uint256 amount) internal {
-        uint256 shares = lendingPool.borrowByPosition(address(this), amount); // Now correctly returns shares
-        borrowShares += shares; // ✅ Updates borrowShares
+        uint256 shares = lendingPool.borrowByPosition(address(this), amount);
+        borrowShares += shares;
         _isHealthy();
         _emitBorrow();
     }
@@ -230,10 +232,42 @@ contract Position {
         uint256 borrowAmount = lendingPool.totalBorrowShares() == 0
             ? 0
             : (borrowShares * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
-        // Ensure borrowed doesn't exceed collateral before subtraction
         if (borrowAmount > collateral) revert InsufficientCollateral();
 
         uint256 allowedBorrowAmount = (collateral - borrowAmount) * ltv / 100;
         if (borrowAmount > allowedBorrowAmount) revert InsufficientCollateral();
+    }
+
+    function updateLeverage(uint256 newLeverage) external {
+        if (newLeverage < 1) revert InsufficientMinimumLeverage();
+        if (newLeverage > 10) revert LeverageTooHigh();
+
+        uint256 oldLeverage = leverage;
+        uint256 oldBorrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
+        uint256 newEffectiveCollateral = baseCollateral * newLeverage;
+        uint256 newBorrowAmount = convertCollateral(baseCollateral * (newLeverage - 1));
+
+        // adjust leverage
+        if (newBorrowAmount > oldBorrowAmount) {
+            // increase
+            uint256 additionalBorrow = newBorrowAmount - oldBorrowAmount;
+            flMode = 1;
+
+            _borrow(additionalBorrow);
+            ILendingPool(lendingPool).flashLoan(address(ILendingPool(lendingPool).loanToken()), additionalBorrow, "");
+
+            flMode = 0;
+        } else if (newBorrowAmount < oldBorrowAmount) {
+            // decrease
+            uint256 repayAmount = oldBorrowAmount - newBorrowAmount;
+            lendingPool.repayByPosition(msg.sender, repayAmount);
+        }
+
+        effectiveCollateral = newEffectiveCollateral;
+        borrowShares = (newBorrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
+        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, newBorrowAmount);
+        health = lendingPool.getHealth(effectiveCollateral, newBorrowAmount);
+        ltv = lendingPool.getLTV(effectiveCollateral, newBorrowAmount);
+        _emitUpdatePosition();
     }
 }
