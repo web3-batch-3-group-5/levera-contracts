@@ -12,6 +12,7 @@ contract Position {
     error InsufficientCollateral();
     error InsufficientMinimumLeverage();
     error LeverageTooHigh();
+    error ZeroAddress();
     error ZeroAmount();
 
     // Uniswap Router
@@ -24,9 +25,9 @@ contract Position {
     uint256 public effectiveCollateral; // Represents the total collateral after including borrowed collateral.
     uint256 public borrowShares;
     uint8 public leverage;
-    uint256 public liquidationPrice;
-    uint256 public health;
-    uint256 public ltv;
+    uint8 public liquidationPrice;
+    uint8 public health;
+    uint8 public ltv;
     uint256 public lastUpdated;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
@@ -47,6 +48,7 @@ contract Position {
             baseCollateral,
             effectiveCollateral,
             borrowShares,
+            lastUpdated,
             leverage,
             liquidationPrice,
             health,
@@ -54,7 +56,7 @@ contract Position {
         );
     }
 
-    function _emitSupplyCollateral(string memory action) internal {
+    function _emitSupplyCollateral() internal {
         emit EventLib.SupplyCollateral(
             address(lendingPool),
             msg.sender,
@@ -71,7 +73,7 @@ contract Position {
         );
     }
 
-    function _emitWithdrawCollateral(string memory action) internal {
+    function _emitWithdrawCollateral() internal {
         emit EventLib.WithdrawCollateral(
             address(lendingPool),
             msg.sender,
@@ -88,7 +90,7 @@ contract Position {
         );
     }
 
-    function _emitBorrow(string memory action) internal {
+    function _emitBorrow() internal {
         emit EventLib.Borrow(
             address(lendingPool),
             msg.sender,
@@ -105,7 +107,7 @@ contract Position {
         );
     }
 
-    function _emitRepay(string memory action) internal {
+    function _emitRepay() internal {
         emit EventLib.Repay(
             address(lendingPool),
             msg.sender,
@@ -202,10 +204,15 @@ contract Position {
     }
 
     function _flAddLeverage(address token, uint256 amount) internal {
+        uint256 amountOut = _swap(token, ILendingPool(lendingPool).collateralToken(), amount);
+        effectiveCollateral += amountOut;
+    }
+
+    function _swap(address loanToken, address collateralToken, uint256 amount) internal returns (uint256) {
         ISwapRouter(router).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: token,
-                tokenOut: ILendingPool(lendingPool).collateralToken(),
+                tokenIn: loanToken,
+                tokenOut: collateralToken,
                 fee: 500,
                 recipient: address(this),
                 deadline: block.timestamp,
@@ -216,12 +223,13 @@ contract Position {
         );
 
         uint256 amountOut = IERC20(ILendingPool(lendingPool).collateralToken()).balanceOf(address(this));
-        effectiveCollateral += amountOut;
 
         IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
         lendingPool.supplyCollateralByPosition(address(this), amountOut);
 
         _emitSupplyCollateral();
+
+        return (amountOut);
     }
 
     function _isHealthy() internal view {
