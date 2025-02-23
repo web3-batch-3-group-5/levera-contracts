@@ -265,7 +265,7 @@ contract Position {
         if (borrowAmount > allowedBorrowAmount) revert InsufficientCollateral();
     }
 
-    function updateLeverage(uint256 newLeverage) external {
+    function updateLeverage(uint8 newLeverage) external {
         if (newLeverage < 1) revert InsufficientMinimumLeverage();
         if (newLeverage > 10) revert LeverageTooHigh();
 
@@ -289,6 +289,8 @@ contract Position {
         } else if (newLeverage < oldLeverage) {
             // decrease
             uint256 repayAmount = oldBorrowAmount - newBorrowAmount;
+            uint256 repayCollateral = newEffectiveCollateral - effectiveCollateral;
+            uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repayCollateral);
             lendingPool.repayByPosition(msg.sender, repayAmount);
         }
 
@@ -299,5 +301,26 @@ contract Position {
         health = lendingPool.getHealth(effectiveCollateral, newBorrowAmount);
         ltv = lendingPool.getLTV(effectiveCollateral, newBorrowAmount);
         _emitUpdatePosition();
+    }
+
+    function closePosition() external {
+        uint256 borrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
+
+        // Swap senilai
+        uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), borrowAmount);
+
+        // repayByPosition
+        lendingPool.repayByPosition(msg.sender, borrowAmount);
+
+        if (baseCollateral > 0) {
+            lendingPool.withdrawCollateralByPosition(address(this), baseCollateral);
+        }
+        borrowShares = 0;
+        baseCollateral = 0;
+        effectiveCollateral = 0;
+        leverage = 1;
+        liquidationPrice = 0;
+        health = 0;
+        ltv = 0;
     }
 }

@@ -111,4 +111,13 @@ NOTE :
 -  _emitUpdatePosition();
 
 # fn close Position
+- calculate borrowed amount
+  convert from borrowshares
+
+- swap
+- repayByPosition()
+
+- withdrawCollateralByPosition()
+
+- reset position , emit
 
