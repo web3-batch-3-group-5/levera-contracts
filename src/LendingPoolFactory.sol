@@ -25,12 +25,12 @@ contract LendingPoolFactory {
     }
 
     modifier canUpdate(address _lendingPool) {
-        if (msg.sender != lendingPools[_lendingPool].creator || msg.sender != owner) revert Unauthorized();
+        if (msg.sender != ILendingPool(_lendingPool).creator() || msg.sender != owner) revert Unauthorized();
         _;
     }
 
     modifier isExist(address _lendingPool) {
-        if (lendingPools[_lendingPool].creator == address(0)) revert PoolNotFound();
+        if (!lendingPools[_lendingPool]) revert PoolNotFound();
         _;
     }
 
@@ -83,12 +83,12 @@ contract LendingPoolFactory {
         isExist(_lendingPool)
         canUpdate(_lendingPool)
     {
-        lendingPools[_lendingPool].isActive = _status;
+        lendingPools[_lendingPool] = _status;
         _indexLendingPool(_lendingPool);
     }
 
     function storeLendingPool(address _lendingPool) external {
-        if (lendingPools[_lendingPool].creator != address(0)) revert PoolAlreadyCreated();
+        if (lendingPools[_lendingPool]) revert PoolAlreadyCreated();
         if (_lendingPool == address(0) || !isContract(_lendingPool)) revert NotALendingPool();
 
         LendingPool lendingPool = LendingPool(_lendingPool);

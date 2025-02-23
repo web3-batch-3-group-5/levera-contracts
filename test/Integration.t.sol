@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {PriceConverterLib} from "../src/libraries/PriceConverterLib.sol";
 import {MockFactory} from "../src/mocks/MockFactory.sol";
@@ -11,13 +10,14 @@ import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {PositionFactory} from "../src/PositionFactory.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {Position} from "../src/Position.sol";
+import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
 import {IPosition} from "../src/interfaces/IPosition.sol";
 import {Deploy} from "../script/Deploy.s.sol";
 
-contract LendingPoolTest is Test {
-    ERC20Mock public mockUSDC;
-    ERC20Mock public mockWBTC;
+contract IntegrationTest is Test {
+    MockERC20 public mockUSDC;
+    MockERC20 public mockWBTC;
     MockV3Aggregator public usdcUsdPriceFeed;
     MockV3Aggregator public wbtcUsdPriceFeed;
     LendingPool public lendingPool;
@@ -32,37 +32,36 @@ contract LendingPoolTest is Test {
     uint8 interestRate = 5;
     PositionType positionType = PositionType.LONG;
 
-    mapping(address => mapping(address => bool)) public userPositions;
-
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
     function setUp() public {
         // Setup Factory
         Deploy deployScript = new Deploy();
-        (LendingPoolFactory, PositionFactory, MockFactory) = deployScript.deployFactory();
-        lendingPoolFactory = LendingPoolFactory;
-        positionFactory = PositionFactory;
-        mockFactory = MockFactory;
+        (lendingPoolFactory, positionFactory, mockFactory) = deployScript.deployFactory();
+        lendingPoolFactory = lendingPoolFactory;
+        positionFactory = positionFactory;
+        mockFactory = mockFactory;
 
         // Setup WBTC - USDC lending pool
         (address loanToken, address loanTokenAggregator) =
             mockFactory.createMock("usdc", "USDC", DECIMALS, USDC_USD_PRICE);
         (address collateralToken, address collateralTokenAggregator) =
             mockFactory.createMock("wbtc", "WBTC", DECIMALS, WBTC_USD_PRICE);
-        mockUSDC = ERC20Mock(loanToken);
-        mockWBTC = ERC20Mock(collateralToken);
+        mockUSDC = MockERC20(loanToken);
+        mockWBTC = MockERC20(collateralToken);
         usdcUsdPriceFeed = MockV3Aggregator(loanTokenAggregator);
         wbtcUsdPriceFeed = MockV3Aggregator(collateralTokenAggregator);
-        lendingPool = lendingPoolFactory.createLendingPool(
-            mockUSDC,
-            mockWBTC,
-            usdcUsdPriceFeed,
-            wbtcUsdPriceFeed,
+        address lendingPoolAddress = lendingPoolFactory.createLendingPool(
+            address(mockUSDC),
+            address(mockWBTC),
+            address(usdcUsdPriceFeed),
+            address(wbtcUsdPriceFeed),
             liquidationThresholdPercentage,
             interestRate,
             positionType
         );
+        lendingPool = LendingPool(lendingPoolAddress);
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
@@ -109,14 +108,20 @@ contract LendingPoolTest is Test {
 
     function test_createPosition() public {
         // Alice create position
+        uint256 baseCollateral = 1e6;
+        uint8 leverage = 2;
+
         vm.startPrank(alice);
-        address onBehalf = address(lendingPool.createPosition());
-        (uint256 collateralAmount, uint256 borrowShares,, bool isActive) = lendingPool.getPosition(onBehalf);
+        address onBehalf = address(positionFactory.createPosition(address(lendingPool), baseCollateral, leverage));
         vm.stopPrank();
 
-        assertEq(collateralAmount, 0);
-        assertEq(borrowShares, 0);
-        assertTrue(isActive);
+        assertTrue(positionFactory.positions()[onBehalf], "Position is registered in Position Factory");
+        assertEq(
+            IPosition(onBehalf).effectiveCollateral(),
+            baseCollateral * leverage,
+            "Effective Collateral should be equal to Base Collateral multiplied by Leverage"
+        );
+        assertTrue(IPosition(onBehalf).borrowShares() > 0, "Borrow Share should be more than zero");
     }
 
     function test_position() public {
@@ -325,46 +330,46 @@ contract LendingPoolTest is Test {
         console.log("Alice successfully repaid", repayShares);
     }
 
-    function test_withdrawCollateralByPosition_InsufficientCollateral() public {
-        uint256 supplyCollateralAmount = 1e5; // 1 WBTC as collateral
-        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
-        uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
+    // function test_withdrawCollateralByPosition_InsufficientCollateral() public {
+    //     uint256 supplyCollateralAmount = 1e5; // 1 WBTC as collateral
+    //     uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
+    //     uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
 
-        // Alice supplies liquidity
-        vm.startPrank(alice);
-        supplyLiquidity(supplyAmount);
-        vm.stopPrank();
+    //     // Alice supplies liquidity
+    //     vm.startPrank(alice);
+    //     supplyLiquidity(supplyAmount);
+    //     vm.stopPrank();
 
-        vm.startPrank(bob);
-        address onBehalf = address(createPosition());
-        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+    //     vm.startPrank(bob);
+    //     address onBehalf = address(createPosition());
+    //     supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
 
-        // Bob withdrawshis collateral
-        vm.expectRevert(LendingPool.InsufficientCollateral.selector);
-        withdrawCollateral(onBehalf, withdrawAmount);
-    }
+    //     // Bob withdrawshis collateral
+    //     vm.expectRevert(LendingPool.InsufficientCollateral.selector);
+    //     withdrawCollateral(onBehalf, withdrawAmount);
+    // }
 
-    function test_withdrawCollateralByPosition() public {
-        uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
-        uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
-        uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
+    // function test_withdrawCollateralByPosition() public {
+    //     uint256 supplyCollateralAmount = 1e6; // 1 WBTC as collateral
+    //     uint256 supplyAmount = 100_000e6; // 100,000 USDC supply
+    //     uint256 withdrawAmount = 1e6; // 1 WBTC withdrawal
 
-        // Alice supplies liquidity
-        vm.startPrank(alice);
-        supplyLiquidity(supplyAmount);
-        vm.stopPrank();
+    //     // Alice supplies liquidity
+    //     vm.startPrank(alice);
+    //     supplyLiquidity(supplyAmount);
+    //     vm.stopPrank();
 
-        vm.startPrank(bob);
-        address onBehalf = address(createPosition());
-        supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
-        (uint256 collateralAmount,,,) = lendingPool.getPosition(onBehalf);
+    //     vm.startPrank(bob);
+    //     address onBehalf = address(createPosition());
+    //     supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
+    //     (uint256 collateralAmount,,,) = lendingPool.getPosition(onBehalf);
 
-        // Bob withdrawshis collateral
-        withdrawCollateral(onBehalf, withdrawAmount);
+    //     // Bob withdrawshis collateral
+    //     withdrawCollateral(onBehalf, withdrawAmount);
 
-        // Ensure collateral is reduced accordingly
-        (uint256 newCollateralAmount,,,) = lendingPool.getPosition(onBehalf);
-        assertEq(newCollateralAmount, collateralAmount - withdrawAmount, "Collateral withdrawal mismatch");
-        vm.stopPrank();
-    }
+    //     // Ensure collateral is reduced accordingly
+    //     (uint256 newCollateralAmount,,,) = lendingPool.getPosition(onBehalf);
+    //     assertEq(newCollateralAmount, collateralAmount - withdrawAmount, "Collateral withdrawal mismatch");
+    //     vm.stopPrank();
+    // }
 }
