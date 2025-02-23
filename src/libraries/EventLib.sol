@@ -5,22 +5,16 @@ import {PoolParams} from "../interfaces/ILendingPool.sol";
 
 library EventLib {
     event AllLendingPool(
-        address indexed lendingPool,
-        address loanToken,
-        address collateralToken,
-        address loanTokenUsdDataFeed,
-        address collateralTokenUsdDataFeed,
-        string loanTokenName,
-        string collateralTokenName,
-        string loanTokenSymbol,
-        string collateralTokenSymbol,
-        address creator,
-        bool isActive
+        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
     );
 
-    event CreateLendingPool(address indexed lendingPool, PoolParams poolParams);
+    event CreateLendingPool(
+        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
+    );
 
-    event StoreLendingPool(address indexed lendingPool, PoolParams poolParams);
+    event StoreLendingPool(
+        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
+    );
 
     event DiscardLendingPool(address indexed lendingPool);
 
@@ -33,13 +27,10 @@ library EventLib {
     event UserPosition(
         address indexed lendingPool,
         address indexed caller,
-        address indexed onBehalf,
-        address loanToken,
-        address collateralToken,
+        address onBehalf,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint256 timestamp,
         uint8 leverage,
         uint256 liquidationPrice,
         uint256 health,
@@ -49,9 +40,7 @@ library EventLib {
     event SupplyCollateral(
         address indexed lendingPool,
         address indexed caller,
-        address indexed onBehalf,
-        address loanToken,
-        address collateralToken,
+        address onBehalf,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
@@ -64,9 +53,7 @@ library EventLib {
     event WithdrawCollateral(
         address indexed lendingPool,
         address indexed caller,
-        address indexed onBehalf,
-        address loanToken,
-        address collateralToken,
+        address onBehalf,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
@@ -79,9 +66,7 @@ library EventLib {
     event Borrow(
         address indexed lendingPool,
         address indexed caller,
-        address indexed onBehalf,
-        address loanToken,
-        address collateralToken,
+        address onBehalf,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
@@ -94,9 +79,7 @@ library EventLib {
     event Repay(
         address indexed lendingPool,
         address indexed caller,
-        address indexed onBehalf,
-        address loanToken,
-        address collateralToken,
+        address onBehalf,
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,

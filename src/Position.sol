@@ -12,6 +12,7 @@ contract Position {
     error InsufficientCollateral();
     error InsufficientMinimumLeverage();
     error LeverageTooHigh();
+    error NoChangeDetected();
     error ZeroAddress();
     error ZeroAmount();
 
@@ -43,12 +44,9 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            lendingPool.loanToken(),
-            lendingPool.collateralToken(),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
-            lastUpdated,
             leverage,
             liquidationPrice,
             health,
@@ -61,8 +59,6 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            lendingPool.loanToken(),
-            lendingPool.collateralToken(),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
@@ -78,8 +74,6 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            lendingPool.loanToken(),
-            lendingPool.collateralToken(),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
@@ -95,8 +89,6 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            lendingPool.loanToken(),
-            lendingPool.collateralToken(),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
@@ -112,8 +104,6 @@ contract Position {
             address(lendingPool),
             msg.sender,
             address(this),
-            lendingPool.loanToken(),
-            lendingPool.collateralToken(),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
@@ -124,12 +114,24 @@ contract Position {
         );
     }
 
-    function convertCollateral(uint256 effectiveCollateralAmount) public view returns (uint256 amount) {
+    function convertCollateralPrice(uint256 collateralAmount) public view returns (uint256 amount) {
         return PriceConverterLib.getConversionRate(
-            effectiveCollateralAmount,
+            collateralAmount,
             AggregatorV2V3Interface(lendingPool.collateralTokenUsdDataFeed()),
             AggregatorV2V3Interface(lendingPool.loanTokenUsdDataFeed())
         );
+    }
+
+    function convertBorrowSharesToAmount(uint256 shares) public view returns (uint256) {
+        return lendingPool.totalBorrowShares() == 0
+            ? 0
+            : (shares * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
+    }
+
+    function convertBorrowAmountToShares(uint256 amount) public view returns (uint256) {
+        return lendingPool.totalBorrowAssets() == 0
+            ? 0
+            : (amount * lendingPool.totalBorrowShares()) / lendingPool.totalBorrowAssets();
     }
 
     function initialization(uint256 _baseCollateral, uint8 _leverage) external {
@@ -137,10 +139,12 @@ contract Position {
         leverage = _leverage;
         effectiveCollateral = _baseCollateral * leverage;
 
-        uint256 effectiveCollateralPrice = convertCollateral(effectiveCollateral);
-        uint256 borrowAmount = convertCollateral(baseCollateral * (_leverage - 1));
+        uint256 effectiveCollateralPrice = convertCollateralPrice(effectiveCollateral);
+        uint256 borrowAmount = convertCollateralPrice(baseCollateral * (_leverage - 1));
 
-        borrowShares = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
+        openPosition(_baseCollateral, borrowAmount);
+
+        borrowShares = convertBorrowAmountToShares(borrowAmount);
         liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
         ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
@@ -164,8 +168,16 @@ contract Position {
         if (amount == 0) revert ZeroAmount();
         if (amount > baseCollateral) revert InsufficientCollateral();
         baseCollateral -= amount;
-
+        effectiveCollateral -= amount;
         _isHealthy();
+
+        uint256 effectiveCollateralPrice = convertCollateralPrice(effectiveCollateral);
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
+
+        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
+        health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
+        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
+
         lendingPool.withdrawCollateralByPosition(address(this), amount);
 
         _emitUpdatePosition();
@@ -181,7 +193,7 @@ contract Position {
         _emitBorrow();
     }
 
-    function openPosition(uint256 amount, uint256 debt) external {
+    function openPosition(uint256 amount, uint256 debt) public {
         _supplyCollateral(amount);
 
         flMode = 1;
@@ -233,11 +245,9 @@ contract Position {
     }
 
     function _isHealthy() internal view {
-        uint256 collateral = convertCollateral(baseCollateral);
+        uint256 collateral = convertCollateralPrice(baseCollateral);
 
-        uint256 borrowAmount = lendingPool.totalBorrowShares() == 0
-            ? 0
-            : (borrowShares * lendingPool.totalBorrowAssets()) / lendingPool.totalBorrowShares();
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         if (borrowAmount > collateral) revert InsufficientCollateral();
 
         uint256 allowedBorrowAmount = (collateral - borrowAmount) * ltv / 100;
@@ -248,10 +258,12 @@ contract Position {
         if (newLeverage < 1) revert InsufficientMinimumLeverage();
         if (newLeverage > 10) revert LeverageTooHigh();
 
-        uint8 oldLeverage = leverage;
+        uint256 oldLeverage = leverage;
+        if (newLeverage == oldLeverage) revert NoChangeDetected();
+
         uint256 oldBorrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
         uint256 newEffectiveCollateral = baseCollateral * newLeverage;
-        uint256 newBorrowAmount = convertCollateral(baseCollateral * (newLeverage - 1));
+        uint256 newBorrowAmount = convertCollateralPrice(baseCollateral * (newLeverage - 1));
 
         // adjust leverage
         if (newLeverage > oldLeverage) {

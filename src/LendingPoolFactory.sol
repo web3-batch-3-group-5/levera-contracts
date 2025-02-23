@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {PoolParams} from "./interfaces/ILendingPool.sol";
+import {ILendingPool} from "./interfaces/ILendingPool.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {LendingPool} from "./LendingPool.sol";
 import {PositionType} from "./interfaces/ILendingPool.sol";
@@ -17,7 +17,7 @@ contract LendingPoolFactory {
 
     address public owner;
     mapping(bytes32 => address) public lendingPoolIds;
-    mapping(address => PoolParams) public lendingPools;
+    mapping(address => bool) public lendingPools;
     address[] public createdLendingPools;
 
     constructor() {
@@ -64,22 +64,16 @@ contract LendingPoolFactory {
         string memory loanTokenSymbol = getTokenSymbol(loanToken);
         string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
 
-        lendingPools[address(lendingPool)] = PoolParams(
+        lendingPools[address(lendingPool)] = true;
+
+        _indexLendingPool(address(lendingPool));
+        emit EventLib.CreateLendingPool(
+            address(lendingPool),
             loanToken,
             collateralToken,
-            loanTokenUsdDataFeed,
-            collateralTokenUsdDataFeed,
-            loanTokenName,
-            collateralTokenName,
-            loanTokenSymbol,
-            collateralTokenSymbol,
             address(this), // LendingPool is created by factory contract
             true
         );
-
-        _indexLendingPool(address(lendingPool));
-
-        emit EventLib.CreateLendingPool(address(lendingPool), lendingPools[address(lendingPool)]);
 
         return address(lendingPool);
     }
@@ -119,22 +113,11 @@ contract LendingPoolFactory {
         string memory loanTokenSymbol = getTokenSymbol(loanToken);
         string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
 
-        lendingPools[_lendingPool] = PoolParams(
-            loanToken,
-            collateralToken,
-            loanTokenUsdDataFeed,
-            collateralTokenUsdDataFeed,
-            loanTokenName,
-            collateralTokenName,
-            loanTokenSymbol,
-            collateralTokenSymbol,
-            lendingPool.owner(),
-            true
-        );
+        lendingPools[_lendingPool] = true;
 
         _indexLendingPool(_lendingPool);
 
-        emit EventLib.StoreLendingPool(_lendingPool, lendingPools[_lendingPool]);
+        emit EventLib.StoreLendingPool(_lendingPool, loanToken, collateralToken, lendingPool.owner(), true);
     }
 
     function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {
@@ -150,21 +133,11 @@ contract LendingPoolFactory {
     }
 
     function _indexLendingPool(address _lendingPool) internal isExist(_lendingPool) {
-        PoolParams memory pool = lendingPools[_lendingPool];
+        address collateralToken = ILendingPool(_lendingPool).collateralToken();
+        address loanToken = ILendingPool(_lendingPool).loanToken();
+        address creator = ILendingPool(_lendingPool).creator();
 
-        emit EventLib.AllLendingPool(
-            _lendingPool,
-            pool.loanToken,
-            pool.collateralToken,
-            pool.loanTokenUsdDataFeed,
-            pool.collateralTokenUsdDataFeed,
-            pool.loanTokenName,
-            pool.collateralTokenName,
-            pool.loanTokenSymbol,
-            pool.collateralTokenSymbol,
-            pool.creator,
-            pool.isActive
-        );
+        emit EventLib.AllLendingPool(_lendingPool, loanToken, collateralToken, creator, lendingPools[_lendingPool]);
     }
 
     function getTokenName(address _token) public view returns (string memory) {
