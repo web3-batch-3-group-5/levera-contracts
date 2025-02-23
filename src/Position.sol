@@ -12,6 +12,7 @@ contract Position {
     error InsufficientCollateral();
     error InsufficientMinimumLeverage();
     error LeverageTooHigh();
+    error NoChangeDetected();
     error ZeroAddress();
     error ZeroAmount();
 
@@ -140,6 +141,8 @@ contract Position {
         uint256 effectiveCollateralPrice = convertCollateral(effectiveCollateral);
         uint256 borrowAmount = convertCollateral(baseCollateral * (_leverage - 1));
 
+        openPosition(_baseCollateral, borrowAmount);
+
         borrowShares = (borrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
         liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
@@ -164,8 +167,14 @@ contract Position {
         if (amount == 0) revert ZeroAmount();
         if (amount > baseCollateral) revert InsufficientCollateral();
         baseCollateral -= amount;
-
+        effectiveCollateral -= amount;
         _isHealthy();
+
+        uint256 effectiveCollateralPrice = convertCollateral(effectiveCollateral);
+        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
+        health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
+        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
+
         lendingPool.withdrawCollateralByPosition(address(this), amount);
 
         _emitUpdatePosition();
@@ -249,12 +258,14 @@ contract Position {
         if (newLeverage > 10) revert LeverageTooHigh();
 
         uint256 oldLeverage = leverage;
+        if (newLeverage == oldLeverage) revert NoChangeDetected();
+
         uint256 oldBorrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
         uint256 newEffectiveCollateral = baseCollateral * newLeverage;
         uint256 newBorrowAmount = convertCollateral(baseCollateral * (newLeverage - 1));
 
         // adjust leverage
-        if (newBorrowAmount > oldBorrowAmount) {
+        if (newLeverage > oldLeverage) {
             // increase
             uint256 additionalBorrow = newBorrowAmount - oldBorrowAmount;
             flMode = 1;
@@ -263,13 +274,14 @@ contract Position {
             ILendingPool(lendingPool).flashLoan(address(ILendingPool(lendingPool).loanToken()), additionalBorrow, "");
 
             flMode = 0;
-        } else if (newBorrowAmount < oldBorrowAmount) {
+        } else if (newLeverage < oldLeverage) {
             // decrease
             uint256 repayAmount = oldBorrowAmount - newBorrowAmount;
             lendingPool.repayByPosition(msg.sender, repayAmount);
         }
 
         effectiveCollateral = newEffectiveCollateral;
+        leverage = newLeverage;
         borrowShares = (newBorrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
         liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, newBorrowAmount);
         health = lendingPool.getHealth(effectiveCollateral, newBorrowAmount);
