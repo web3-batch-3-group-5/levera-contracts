@@ -40,18 +40,20 @@ contract LendingPoolTest is Test {
     function setUp() public {
         // Setup Factory
         Deploy deployScript = new Deploy();
-        (_lendingPoolFactory, _positionFactory, _mockFactory) = deployScript.deployFactory();
-        lendingPoolFactory = _lendingPoolFactory;
-        positionFactory = _positionFactory;
-        mockFactory = _mockFactory;
+        (LendingPoolFactory, PositionFactory, MockFactory) = deployScript.deployFactory();
+        lendingPoolFactory = LendingPoolFactory;
+        positionFactory = PositionFactory;
+        mockFactory = MockFactory;
 
         // Setup WBTC - USDC lending pool
-        (_mockUSDC, _mockUSDCAggregator) = mockFactory.createMock("usdc", "USDC", DECIMALS, USDC_USD_PRICE);
-        (_mockWBTC, _mockWBTCAggregator) = mockFactory.createMock("wbtc", "WBTC", DECIMALS, WBTC_USD_PRICE);
-        mockUSDC = _mockUSDC;
-        mockWBTC = _mockWBTC;
-        usdcUsdPriceFeed = _mockUSDCAggregator;
-        wbtcUsdPriceFeed = _mockWBTCAggregator;
+        (address loanToken, address loanTokenAggregator) =
+            mockFactory.createMock("usdc", "USDC", DECIMALS, USDC_USD_PRICE);
+        (address collateralToken, address collateralTokenAggregator) =
+            mockFactory.createMock("wbtc", "WBTC", DECIMALS, WBTC_USD_PRICE);
+        mockUSDC = ERC20Mock(loanToken);
+        mockWBTC = ERC20Mock(collateralToken);
+        usdcUsdPriceFeed = MockV3Aggregator(loanTokenAggregator);
+        wbtcUsdPriceFeed = MockV3Aggregator(collateralTokenAggregator);
         lendingPool = lendingPoolFactory.createLendingPool(
             mockUSDC,
             mockWBTC,
@@ -129,6 +131,9 @@ contract LendingPoolTest is Test {
     }
 
     function test_supplyChange() public {
+        uint256 bobBorrowAmount = 20_000e6;
+        uint256 bobCollateralAmount = 1e6;
+
         // Bob Borrow
         vm.startPrank(bob);
         IERC20(mockWBTC).approve(address(lendingPool), bobCollateralAmount);
