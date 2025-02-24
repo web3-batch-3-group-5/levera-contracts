@@ -299,6 +299,7 @@ contract Position {
         lendingPool.repayByPosition(msg.sender, borrowShares);
 
         uint256 diffAmount = amountOut - borrowAmount;
+        IERC20(lendingPool.loanToken()).transfer(msg.sender, amount);
 
         borrowShares = 0;
         baseCollateral = 0;

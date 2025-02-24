@@ -133,7 +133,6 @@ contract IntegrationTest is Test {
     function test_createPosition() public {
         uint256 baseCollateral = 1e8;
         uint8 leverage = 200;
-        uint256 estBorrowAmount = 100_000e6;
 
         console.log("Before Alice create position");
         console.log("totalCollateral =", lendingPool.totalCollateral());
