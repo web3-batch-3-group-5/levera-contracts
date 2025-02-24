@@ -11,6 +11,8 @@ library PriceConverterLib {
     function getPrice(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
         (, int256 answer,,,) = dataFeed.latestRoundData();
         if (answer < 0) revert NegativeAnswer();
+
+        // Normalize price to 18 decimals
         return uint256(answer) * PRECISION / (10 ** dataFeed.decimals());
     }
 
@@ -19,9 +21,16 @@ library PriceConverterLib {
         AggregatorV2V3Interface dataFeedIn,
         AggregatorV2V3Interface dataFeedOut
     ) public view returns (uint256 amountOut) {
-        uint256 priceFeedIn = getPrice(dataFeedIn);
-        uint256 priceFeedOut = getPrice(dataFeedOut);
+        uint256 priceFeedIn = getPrice(dataFeedIn); // WBTC/USD
+        uint256 priceFeedOut = getPrice(dataFeedOut); // USDC/USD
 
-        return (amountIn * priceFeedIn) / priceFeedOut;
+        // Normalize amountIn to 18 decimals
+        uint256 amountInNormalized = amountIn * (10 ** (18 - dataFeedIn.decimals()));
+
+        // Convert value
+        uint256 amountOutNormalized = (amountInNormalized * priceFeedIn) / priceFeedOut;
+
+        // Convert back to the correct decimals of the output token
+        return amountOutNormalized / (10 ** (18 - dataFeedOut.decimals()));
     }
 }

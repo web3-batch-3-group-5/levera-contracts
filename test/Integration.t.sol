@@ -115,8 +115,6 @@ contract IntegrationTest is Test {
         IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
 
         uint256 borrowAmount = position.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
-
-        console.log("Estimated Borrow Amount", _baseCollateral * (_leverage - 100) / 100, borrowAmount);
         position.setRiskInfo(effectiveCollateral, borrowAmount);
 
         // Replace openPosition
