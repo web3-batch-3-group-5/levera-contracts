@@ -6,9 +6,11 @@ import {Position} from "./Position.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
 
 contract PositionFactory {
-    event PositionCreated(address positionAddress, address lendingPool, uint256 _baseCollateral, uint8 _leverag);
+    event PositionCreated(
+        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint8 _leverage
+    );
 
-    mapping(address => bool) public positions;
+    mapping(address => mapping(address => bool)) public positions;
 
     function createPosition(address _lendingPool, uint256 _baseCollateral, uint8 _leverage)
         external
@@ -17,7 +19,7 @@ contract PositionFactory {
         Position newPosition = new Position(_lendingPool, msg.sender);
         address positionAddr = address(newPosition);
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
-        positions[positionAddr] = true;
+        positions[msg.sender][positionAddr] = true;
         ILendingPool(_lendingPool).registerPosition(positionAddr);
 
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
@@ -28,7 +30,7 @@ contract PositionFactory {
         newPosition.setRiskInfo(effectiveCollateral, borrowAmount);
         newPosition.openPosition(_baseCollateral, borrowAmount);
 
-        emit PositionCreated(positionAddr, _lendingPool, _baseCollateral, _leverage);
+        emit PositionCreated(_lendingPool, msg.sender, positionAddr, _baseCollateral, _leverage);
         return positionAddr;
     }
 }

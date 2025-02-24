@@ -28,7 +28,7 @@ contract IntegrationTest is Test {
     uint8 liquidationThresholdPercentage = 80;
     uint8 interestRate = 5;
     PositionType positionType = PositionType.LONG;
-    mapping(address => bool) public positions;
+    mapping(address => mapping(address => bool)) public positions;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
@@ -108,7 +108,7 @@ contract IntegrationTest is Test {
         // Treat IntegrationTest as PositionFactory
         Position position = new Position(address(lendingPool), user);
         address positionAddr = address(position);
-        positions[positionAddr] = true;
+        positions[alice][positionAddr] = true;
         lendingPool.registerPosition(positionAddr);
         console.log("Position created at", address(positionAddr));
 
@@ -125,12 +125,12 @@ contract IntegrationTest is Test {
         IERC20(mockWBTC).approve(positionAddr, borrowCollateral);
         position.addCollateral(borrowCollateral);
 
-        console.log("Estimated Collateral Amount", position.convertBorrowSharesToAmount(position.borrowShares()));
+        console.log("Estimated Borrow Collateral Price", position.convertBorrowSharesToAmount(position.borrowShares()));
 
         return positionAddr;
     }
 
-    function test_createPosition_Alice() public {
+    function test_createPosition() public {
         uint256 baseCollateral = 1e8;
         uint8 leverage = 200;
         uint256 estBorrowAmount = 100_000e6;
@@ -141,10 +141,10 @@ contract IntegrationTest is Test {
         console.log("totalBorrowAssets =", lendingPool.totalBorrowAssets());
         console.log("==============================================================");
 
-        // Alice Borrow
+        // Alice Create Position
         address onBehalf = createPosition(alice, baseCollateral, leverage);
 
-        assertTrue(positions[onBehalf], "Position is registered in Position Factory");
+        assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
         assertEq(
             IPosition(onBehalf).effectiveCollateral(),
             baseCollateral * leverage / 100,
@@ -166,24 +166,24 @@ contract IntegrationTest is Test {
         lendingPool.supplyCollateralByPosition(randomOnBehalf, supplyCollateralAmount);
     }
 
-    // function test_supplyCollateralByPosition() public {
-    //     uint256 supplyCollateral = 1e6;
+    function test_addCollateral() public {
+        uint256 baseCollateral = 1e8;
+        uint8 leverage = 200;
+        uint256 addedCollateral = 5e7;
 
-    //     // Alice create position
-    //     vm.startPrank(alice);
-    //     address onBehalf = address(positionFactory.createPosition(address(lendingPool), bobCollateral, leverage));
-    //     IERC20(mockWBTC).approve(address(lendingPool), supplyCollateral);
+        // Alice Create Position
+        address onBehalf = createPosition(alice, baseCollateral, leverage);
 
-    //     // Alice supply colleteral
-    //     lendingPool.supplyCollateralByPosition(address(onBehalf), supplyCollateral);
+        assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
 
-    //     (uint256 collateralAmount,,,) = lendingPool.getPosition(onBehalf);
+        IPosition(onBehalf).addCollateral(addedCollateral);
 
-    //     // Verify Alice's supply collateral
-    //     assertEq(collateralAmount, supplyCollateral, "Total Supply Collateral Should Be Update");
-
-    //     console.log("collateral amount", collateralAmount);
-    // }
+        assertEq(
+            IPosition(onBehalf).effectiveCollateral(),
+            baseCollateral * leverage / 100,
+            "Effective Collateral should be equal to Base Collateral multiplied by Leverage"
+        );
+    }
 
     // function test_borrowByPosition() public {
     //     uint256 supplyCollateralAmount = 1e6; // in wbtc

@@ -45,7 +45,7 @@ contract Position {
 
         emit EventLib.UserPosition(
             address(lendingPool),
-            msg.sender,
+            creator,
             address(this),
             baseCollateral,
             effectiveCollateral,
@@ -60,7 +60,7 @@ contract Position {
     function _emitSupplyCollateral() internal {
         emit EventLib.SupplyCollateral(
             address(lendingPool),
-            msg.sender,
+            creator,
             address(this),
             baseCollateral,
             effectiveCollateral,
@@ -75,7 +75,7 @@ contract Position {
     function _emitWithdrawCollateral() internal {
         emit EventLib.WithdrawCollateral(
             address(lendingPool),
-            msg.sender,
+            creator,
             address(this),
             baseCollateral,
             effectiveCollateral,
@@ -90,7 +90,7 @@ contract Position {
     function _emitBorrow() internal {
         emit EventLib.Borrow(
             address(lendingPool),
-            msg.sender,
+            creator,
             address(this),
             baseCollateral,
             effectiveCollateral,
@@ -105,7 +105,7 @@ contract Position {
     function _emitRepay() internal {
         emit EventLib.Repay(
             address(lendingPool),
-            msg.sender,
+            creator,
             address(this),
             baseCollateral,
             effectiveCollateral,
