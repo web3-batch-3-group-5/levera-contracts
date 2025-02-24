@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Position} from "./Position.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
 
@@ -13,16 +14,20 @@ contract PositionFactory {
         external
         returns (address)
     {
+        Position newPosition = new Position(_lendingPool, msg.sender);
+        address positionAddr = address(newPosition);
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
-        address loanToken = ILendingPool(_lendingPool).loanToken();
 
-        Position newPosition = new Position(_lendingPool);
-        address positionAddress = address(newPosition);
+        IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
+        IERC20(collateralToken).approve(positionAddr, _baseCollateral);
 
-        newPosition.initialization(_baseCollateral, _leverage);
+        uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100)) / 100;
+        uint256 effectiveCollateral = _baseCollateral * _leverage / 100;
+        newPosition.setRiskInfo(effectiveCollateral, borrowAmount);
+        newPosition.openPosition(_baseCollateral, borrowAmount);
 
-        positions[positionAddress] = true;
-        emit PositionCreated(positionAddress, _lendingPool, _baseCollateral, _leverage);
-        return positionAddress;
+        positions[positionAddr] = true;
+        emit PositionCreated(positionAddr, _lendingPool, _baseCollateral, _leverage);
+        return positionAddr;
     }
 }

@@ -30,10 +30,9 @@ interface ILendingPool {
     function totalBorrowAssets() external view returns (uint256);
     function totalBorrowShares() external view returns (uint256);
     function totalCollateral() external view returns (uint256);
-    function liquidationThresholdPercentage() external view returns (uint8);
+    function ltp() external view returns (uint8);
     function interestRate() external view returns (uint8);
     function userSupplyShares(address user) external view returns (uint256);
-    function userPositions(address user, address onBehalf) external view returns (bool);
 
     function supply(uint256 amount) external;
     function withdraw(uint256 shares) external;

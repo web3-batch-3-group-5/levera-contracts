@@ -3,50 +3,63 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
+import {MockFactory} from "../src/mocks/MockFactory.sol";
+import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {LendingPool} from "../src/LendingPool.sol";
-import {PositionType} from "../src/interfaces/ILendingPool.sol";
+import {MockERC20} from "../src/mocks/MockERC20.sol";
+import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
+import {IPosition} from "../src/interfaces/IPosition.sol";
+import {Deploy} from "../script/Deploy.s.sol";
 
 contract LendingPoolTest is Test {
-    ERC20Mock public mockUSDC;
-    ERC20Mock public mockWBTC;
+    MockERC20 public mockUSDC;
+    MockERC20 public mockWBTC;
     MockV3Aggregator public usdcUsdPriceFeed;
     MockV3Aggregator public wbtcUsdPriceFeed;
     LendingPool public lendingPool;
+    LendingPoolFactory public lendingPoolFactory;
+    MockFactory public mockFactory;
 
-    uint8 public DECIMALS = 8;
-    int64 public constant USDC_USD_PRICE = 1e8;
-    int64 public constant WBTC_USD_PRICE = 1e13;
+    uint8 liquidationThresholdPercentage = 80;
+    uint8 interestRate = 5;
+    PositionType positionType = PositionType.LONG;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
     function setUp() public {
-        mockUSDC = new ERC20Mock();
-        mockWBTC = new ERC20Mock();
-        usdcUsdPriceFeed = new MockV3Aggregator(DECIMALS, USDC_USD_PRICE);
-        wbtcUsdPriceFeed = new MockV3Aggregator(DECIMALS, WBTC_USD_PRICE);
-        uint8 liquidationThresholdPercentage = 80;
-        uint8 interestRate = 5;
-        PositionType positionType = PositionType.LONG;
+        // Setup Factory
+        Deploy deployScript = new Deploy();
+        (lendingPoolFactory,, mockFactory) = deployScript.deployFactory();
+        lendingPoolFactory = lendingPoolFactory;
+        mockFactory = mockFactory;
 
-        lendingPool = new LendingPool(
-            mockUSDC,
-            mockWBTC,
-            usdcUsdPriceFeed,
-            wbtcUsdPriceFeed,
+        // Setup WBTC - USDC lending pool
+        (address loanToken, address loanTokenAggregator) = mockFactory.createMock("usdc", "USDC", 6, 1e6);
+        (address collateralToken, address collateralTokenAggregator) =
+            mockFactory.createMock("wbtc", "WBTC", 8, 100_000e8);
+        mockUSDC = MockERC20(loanToken);
+        mockWBTC = MockERC20(collateralToken);
+        usdcUsdPriceFeed = MockV3Aggregator(loanTokenAggregator);
+        wbtcUsdPriceFeed = MockV3Aggregator(collateralTokenAggregator);
+        address lendingPoolAddress = lendingPoolFactory.createLendingPool(
+            address(mockUSDC),
+            address(mockWBTC),
+            address(usdcUsdPriceFeed),
+            address(wbtcUsdPriceFeed),
             liquidationThresholdPercentage,
             interestRate,
-            positionType,
-            alice
+            positionType
         );
+        lendingPool = LendingPool(lendingPoolAddress);
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
         console.log("Mock WBTC deployed at:", address(mockWBTC));
         console.log("USDC/USD Price Feed deployed at:", address(usdcUsdPriceFeed));
         console.log("WBTC/USD Price Feed deployed at:", address(wbtcUsdPriceFeed));
+        console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Lending Pool deployed at:", address(lendingPool));
         console.log("Liquidation Threshold Percentage:", liquidationThresholdPercentage);
         console.log("Interest Rate Percentage:", interestRate);
@@ -54,9 +67,9 @@ contract LendingPoolTest is Test {
         console.log("==============================================================");
 
         mockUSDC.mint(alice, 100_000e6);
-        mockWBTC.mint(alice, 1e6);
+        mockWBTC.mint(alice, 1e8);
         mockUSDC.mint(bob, 100_000e6);
-        mockWBTC.mint(bob, 2e6);
+        mockWBTC.mint(bob, 2e8);
     }
 
     function supplyLiquidity(uint256 amount) internal {
