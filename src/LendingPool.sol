@@ -160,21 +160,17 @@ contract LendingPool {
         return shares;
     }
 
-    function repayByPosition(address onBehalf, uint256 amount)
+    function repayByPosition(address onBehalf, uint256 shares)
         public
         onlyActivePosition(onBehalf)
         returns (uint256 shares)
     {
         _accrueInterest();
 
-        if (totalBorrowShares == 0) revert InvalidAmount();
+        if (shares == 0 || totalBorrowShares == 0) revert InvalidAmount();
 
-        // uint256 shares = 0;
-        if (totalBorrowAssets == 0) {
-            shares = amount;
-        } else {
-            shares = (amount * totalBorrowShares) / totalBorrowAssets;
-        }
+        uint256 amount = (shares * totalBorrowAssets) / totalBorrowShares;
+        if (amount == 0) revert InvalidAmount();
 
         totalBorrowShares -= shares;
         totalBorrowAssets -= amount;
@@ -182,21 +178,6 @@ contract LendingPool {
         IERC20(loanToken).approve(address(this), amount);
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
         return shares;
-
-        /*
-        inside Position.sol
-
-        if (amount == 0 || borrowShares == 0) revert InvalidAmount();
-
-        IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-
-        uint256 shares = repayByPosition(...)
-        borrowShares -= shares;
-        
-        _updatePosition(onBehalf);
-        emit EventLib.RepayByPosition(address(lendingPool), msg.sender, address(this), currPositionParams());
-
-         */
     }
 
     function accrueInterest() public {
