@@ -236,7 +236,7 @@ contract LendingPool {
         return uint8((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
     }
 
-    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
+    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external pure returns (uint8) {
         return uint8(borrowAmount / effectiveCollateralPrice);
     }
 

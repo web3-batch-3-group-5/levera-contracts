@@ -94,13 +94,8 @@ contract LendingPoolFactory {
         LendingPool lendingPool = LendingPool(_lendingPool);
         address loanToken = address(lendingPool.loanToken());
         address collateralToken = address(lendingPool.collateralToken());
-        address loanTokenUsdDataFeed = address(lendingPool.loanTokenUsdDataFeed());
-        address collateralTokenUsdDataFeed = address(lendingPool.collateralTokenUsdDataFeed());
 
-        if (
-            loanToken == address(0) || collateralToken == address(0) || loanTokenUsdDataFeed == address(0)
-                || collateralTokenUsdDataFeed == address(0)
-        ) {
+        if (loanToken == address(0) || collateralToken == address(0)) {
             revert NotALendingPool();
         }
 

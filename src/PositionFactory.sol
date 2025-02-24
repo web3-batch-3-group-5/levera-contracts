@@ -4,12 +4,9 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Position} from "./Position.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
+import {EventLib} from "./libraries/EventLib.sol";
 
 contract PositionFactory {
-    event PositionCreated(
-        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint8 _leverage
-    );
-
     mapping(address => mapping(address => bool)) public positions;
 
     function createPosition(address _lendingPool, uint256 _baseCollateral, uint8 _leverage)
@@ -30,7 +27,7 @@ contract PositionFactory {
         newPosition.setRiskInfo(effectiveCollateral, borrowAmount);
         newPosition.openPosition(_baseCollateral, borrowAmount);
 
-        emit PositionCreated(_lendingPool, msg.sender, positionAddr, _baseCollateral, _leverage);
+        emit EventLib.PositionCreated(_lendingPool, msg.sender, positionAddr, _baseCollateral, _leverage);
         return positionAddr;
     }
 }

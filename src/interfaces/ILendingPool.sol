@@ -48,7 +48,7 @@ interface ILendingPool {
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8);
     function getHealth(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8);
-    function getLTV(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8);
+    function getLTV(uint256 effectiveCollateral, uint256 borrowAmount) external pure returns (uint8);
 }
 
 interface ISwapRouter {

@@ -90,4 +90,8 @@ library EventLib {
     );
 
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
+
+    event PositionCreated(
+        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint8 _leverage
+    );
 }
