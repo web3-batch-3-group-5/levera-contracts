@@ -176,6 +176,12 @@ contract IntegrationTest is Test {
 
         assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
 
+        // vm.startPrank(alice);
+        // IERC20(mockWBTC).approve(address(this), addedCollateral);
+        // IERC20(mockWBTC).transfer(address(this), addedCollateral);
+        // vm.stopPrank();
+
+        IERC20(mockWBTC).approve(onBehalf, addedCollateral);
         IPosition(onBehalf).addCollateral(addedCollateral);
 
         assertEq(

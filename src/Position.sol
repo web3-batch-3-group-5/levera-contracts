@@ -261,15 +261,13 @@ contract Position {
 
         uint256 oldLeverage = leverage;
         if (newLeverage == oldLeverage) revert NoChangeDetected();
-
-        uint256 oldBorrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
-        uint256 newEffectiveCollateral = baseCollateral * newLeverage;
-        uint256 newBorrowAmount = convertCollateralPrice(baseCollateral * (newLeverage - 100)) / 100;
+        uint256 newEffectiveCollateral = baseCollateral * newLeverage / 100;
 
         // adjust leverage
         if (newLeverage > oldLeverage) {
             // increase
-            uint256 additionalBorrow = newBorrowAmount - oldBorrowAmount;
+            uint256 borrowCollateral = newEffectiveCollateral - effectiveCollateral;
+            uint256 additionalBorrow = convertCollateralPrice(borrowCollateral);
             flMode = 1;
 
             ILendingPool(lendingPool).flashLoan(address(ILendingPool(lendingPool).loanToken()), additionalBorrow, "");
@@ -278,18 +276,18 @@ contract Position {
             flMode = 0;
         } else if (newLeverage < oldLeverage) {
             // decrease
-            uint256 repayAmount = oldBorrowAmount - newBorrowAmount;
-            uint256 repayCollateral = newEffectiveCollateral - effectiveCollateral;
-            uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repayCollateral);
-            lendingPool.repayByPosition(msg.sender, repayAmount);
+            uint256 repaidCollateral = effectiveCollateral - newEffectiveCollateral;
+            uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repaidCollateral);
+            lendingPool.repayByPosition(msg.sender, amountOut);
+
+            uint256 repaidShares = convertBorrowAmountToShares(amountOut);
+            borrowShares -= repaidShares;
         }
 
         effectiveCollateral = newEffectiveCollateral;
         leverage = newLeverage;
-        borrowShares = (newBorrowAmount * lendingPool.totalSupplyAssets()) / lendingPool.totalSupplyShares();
-        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, newBorrowAmount);
-        health = lendingPool.getHealth(effectiveCollateral, newBorrowAmount);
-        ltv = lendingPool.getLTV(effectiveCollateral, newBorrowAmount);
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
+        setRiskInfo(effectiveCollateral, borrowAmount);
         _emitUpdatePosition();
     }
 

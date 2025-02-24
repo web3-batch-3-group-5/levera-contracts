@@ -25,6 +25,7 @@ interface IPosition {
     function ltv() external view returns (uint256);
     function lastUpdated() external view returns (uint256);
 
+    function addCollateral(uint256 amount) external;
     function addLeverage(uint256 amount, uint256 debt) external;
     function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
     function editPosition(address lendingPool, address onBehalf, uint256 baseCollateral, uint8 leverage)
