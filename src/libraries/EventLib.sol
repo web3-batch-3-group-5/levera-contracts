@@ -94,4 +94,6 @@ library EventLib {
     event PositionCreated(
         address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint8 _leverage
     );
+
+    event PositionDeleted(address _lendingPool, address caller, address onBehalf);
 }

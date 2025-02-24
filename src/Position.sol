@@ -307,5 +307,6 @@ contract Position {
         liquidationPrice = 0;
         health = 0;
         ltv = 0;
+        _emitUpdatePosition();
     }
 }
