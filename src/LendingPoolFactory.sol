@@ -59,11 +59,6 @@ contract LendingPoolFactory {
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
 
-        string memory loanTokenName = getTokenName(loanToken);
-        string memory collateralTokenName = getTokenName(collateralToken);
-        string memory loanTokenSymbol = getTokenSymbol(loanToken);
-        string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
-
         lendingPools[address(lendingPool)] = true;
 
         _indexLendingPool(address(lendingPool));
@@ -102,11 +97,6 @@ contract LendingPoolFactory {
         bytes32 id = lendingPool.contractId();
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
         lendingPoolIds[id] = _lendingPool;
-
-        string memory loanTokenName = getTokenName(loanToken);
-        string memory collateralTokenName = getTokenName(collateralToken);
-        string memory loanTokenSymbol = getTokenSymbol(loanToken);
-        string memory collateralTokenSymbol = getTokenSymbol(collateralToken);
 
         lendingPools[_lendingPool] = true;
 
