@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Position} from "./Position.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
+import {IPosition} from "./interfaces/IPosition.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 
 contract PositionFactory {
@@ -32,7 +33,7 @@ contract PositionFactory {
     }
 
     function deletePosition(address _lendingPool, address onBehalf) external returns (address) {
-        Position(onBehalf).closePosition();
+        IPosition(onBehalf).closePosition();
         positions[msg.sender][onBehalf] = false;
         emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
         return onBehalf;

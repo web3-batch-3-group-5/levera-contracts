@@ -31,5 +31,6 @@ interface IPosition {
     function editPosition(address lendingPool, address onBehalf, uint256 baseCollateral, uint8 leverage)
         external
         returns (bool);
-    function initialization(uint256 _baseCollateral, uint8 _leverage) external;
+    function openPosition() external;
+    function closePosition() external;
 }
