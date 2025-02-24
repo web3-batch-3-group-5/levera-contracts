@@ -160,11 +160,7 @@ contract LendingPool {
         return shares;
     }
 
-    function repayByPosition(address onBehalf, uint256 shares)
-        public
-        onlyActivePosition(onBehalf)
-        returns (uint256 shares)
-    {
+    function repayByPosition(address onBehalf, uint256 shares) public onlyActivePosition(onBehalf) {
         _accrueInterest();
 
         if (shares == 0 || totalBorrowShares == 0) revert InvalidAmount();
@@ -177,7 +173,6 @@ contract LendingPool {
 
         IERC20(loanToken).approve(address(this), amount);
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
-        return shares;
     }
 
     function accrueInterest() public {

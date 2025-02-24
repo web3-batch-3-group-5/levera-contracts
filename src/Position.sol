@@ -295,15 +295,10 @@ contract Position {
         uint256 borrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
         lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
 
-        // Swap senilai
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
-
-        // repayByPosition
         lendingPool.repayByPosition(msg.sender, borrowShares);
 
         uint256 diffAmount = amountOut - borrowAmount;
-        // transfer
-        // set status to false
 
         borrowShares = 0;
         baseCollateral = 0;
