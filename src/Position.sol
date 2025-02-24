@@ -277,7 +277,7 @@ contract Position {
         } else if (newLeverage < oldLeverage) {
             // decrease
             uint256 repaidCollateral = effectiveCollateral - newEffectiveCollateral;
-            uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repaidCollateral);
+            uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), repaidCollateral);
             lendingPool.repayByPosition(msg.sender, amountOut);
 
             uint256 repaidShares = convertBorrowAmountToShares(amountOut);
@@ -293,16 +293,19 @@ contract Position {
 
     function closePosition() external {
         uint256 borrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
+        lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
 
         // Swap senilai
-        uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), borrowAmount);
+        uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
 
-        // repayByPosition
+        // repayByPosition change from amount to shares
         lendingPool.repayByPosition(msg.sender, borrowAmount);
 
-        if (baseCollateral > 0) {
-            lendingPool.withdrawCollateralByPosition(address(this), baseCollateral);
-        }
+        uint256 diffAmount = amountOut - borrowAmount;
+
+        // transfer
+        // set status to false
+
         borrowShares = 0;
         baseCollateral = 0;
         effectiveCollateral = 0;
