@@ -34,7 +34,7 @@ contract PositionFactory {
     function deletePosition(address _lendingPool, address onBehalf) external returns (address) {
         Position(onBehalf).closePosition();
         positions[msg.sender][onBehalf] = false;
-        emit PositionDeleted(_lendingPool, msg.sender, onBehalf);
+        emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
         return onBehalf;
     }
 }

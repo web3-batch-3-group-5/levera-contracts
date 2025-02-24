@@ -292,7 +292,7 @@ contract Position {
     }
 
     function closePosition() external {
-        uint256 borrowAmount = (borrowShares * lendingPool.totalSupplyShares()) / lendingPool.totalSupplyAssets();
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
 
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
