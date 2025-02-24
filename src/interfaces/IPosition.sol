@@ -8,10 +8,10 @@ struct PositionParams {
     uint256 effectiveCollateral;
     uint256 borrowShares;
     uint256 lastUpdated;
-    uint8 leverage;
-    uint8 liquidationPrice;
-    uint8 health;
-    uint8 ltv;
+    uint256 leverage;
+    uint256 liquidationPrice;
+    uint256 health;
+    uint256 ltv;
 }
 
 interface IPosition {
@@ -19,7 +19,7 @@ interface IPosition {
     function baseCollateral() external view returns (uint256);
     function effectiveCollateral() external view returns (uint256);
     function borrowShares() external view returns (uint256);
-    function leverage() external view returns (uint8);
+    function leverage() external view returns (uint256);
     function liquidationPrice() external view returns (uint256);
     function health() external view returns (uint256);
     function ltv() external view returns (uint256);
@@ -28,7 +28,7 @@ interface IPosition {
     function addCollateral(uint256 amount) external;
     function addLeverage(uint256 amount, uint256 debt) external;
     function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
-    function editPosition(address lendingPool, address onBehalf, uint256 baseCollateral, uint8 leverage)
+    function editPosition(address lendingPool, address onBehalf, uint256 baseCollateral, uint256 leverage)
         external
         returns (bool);
     function openPosition() external;

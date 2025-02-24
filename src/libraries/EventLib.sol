@@ -31,7 +31,7 @@ library EventLib {
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint8 leverage,
+        uint256 leverage,
         uint256 liquidationPrice,
         uint256 health,
         uint256 ltv
@@ -44,10 +44,10 @@ library EventLib {
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint8 leverage,
-        uint8 liquidationPrice,
-        uint8 health,
-        uint8 ltv
+        uint256 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
 
     event WithdrawCollateral(
@@ -57,10 +57,10 @@ library EventLib {
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint8 leverage,
-        uint8 liquidationPrice,
-        uint8 health,
-        uint8 ltv
+        uint256 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
 
     event Borrow(
@@ -70,10 +70,10 @@ library EventLib {
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint8 leverage,
-        uint8 liquidationPrice,
-        uint8 health,
-        uint8 ltv
+        uint256 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
 
     event Repay(
@@ -83,16 +83,16 @@ library EventLib {
         uint256 baseCollateral,
         uint256 effectiveCollateral,
         uint256 borrowShares,
-        uint8 leverage,
-        uint8 liquidationPrice,
-        uint8 health,
-        uint8 ltv
+        uint256 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
 
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
 
     event PositionCreated(
-        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint8 _leverage
+        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint256 _leverage
     );
 
     event PositionDeleted(address _lendingPool, address caller, address onBehalf);

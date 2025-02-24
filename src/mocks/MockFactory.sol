@@ -11,7 +11,7 @@ contract MockFactory {
     mapping(string => address) public tokens;
     mapping(string => address) public aggregators;
 
-    function createMock(string calldata name, string calldata symbol, uint8 decimals, int256 price)
+    function createMock(string calldata name, string calldata symbol, uint256 decimals, int256 price)
         public
         returns (address tokenAddress, address aggregatorAddress)
     {

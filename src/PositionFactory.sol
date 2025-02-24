@@ -10,7 +10,7 @@ import {EventLib} from "./libraries/EventLib.sol";
 contract PositionFactory {
     mapping(address => mapping(address => bool)) public positions;
 
-    function createPosition(address _lendingPool, uint256 _baseCollateral, uint8 _leverage)
+    function createPosition(address _lendingPool, uint256 _baseCollateral, uint256 _leverage)
         external
         returns (address)
     {

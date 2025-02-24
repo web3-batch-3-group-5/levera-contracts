@@ -26,10 +26,10 @@ contract Position {
     uint256 public baseCollateral; // Represents the initial collateral amount.
     uint256 public effectiveCollateral; // Represents the total collateral after including borrowed collateral.
     uint256 public borrowShares;
-    uint8 public leverage = 100;
-    uint8 public liquidationPrice;
-    uint8 public health;
-    uint8 public ltv;
+    uint256 public leverage = 100;
+    uint256 public liquidationPrice;
+    uint256 public health;
+    uint256 public ltv;
     uint256 public lastUpdated;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
@@ -255,7 +255,7 @@ contract Position {
         if (healthFactor < 1) revert PositionAtRisk();
     }
 
-    function updateLeverage(uint8 newLeverage) external {
+    function updateLeverage(uint256 newLeverage) external {
         if (newLeverage < 100) revert InsufficientMinimumLeverage();
         if (newLeverage > 500) revert LeverageTooHigh();
 

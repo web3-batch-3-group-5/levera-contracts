@@ -37,8 +37,8 @@ contract LendingPool {
     uint256 public totalBorrowAssets;
     uint256 public totalBorrowShares;
     uint256 public totalCollateral;
-    uint8 public ltp; // Liquidation Threshold Percentage
-    uint8 public interestRate;
+    uint256 public ltp; // Liquidation Threshold Percentage
+    uint256 public interestRate;
     uint256 lastAccrued = block.timestamp;
 
     mapping(address => bool) public userPositions;
@@ -49,8 +49,8 @@ contract LendingPool {
         IERC20 _collateralToken,
         AggregatorV2V3Interface _loanTokenUsdPriceFeed,
         AggregatorV2V3Interface _collateralTokenUsdPriceFeed,
-        uint8 _ltp,
-        uint8 _interestRate,
+        uint256 _ltp,
+        uint256 _interestRate,
         PositionType _positionType,
         address _creator
     ) {
@@ -204,16 +204,16 @@ contract LendingPool {
         IERC20(token).transferFrom(msg.sender, address(this), amount);
     }
 
-    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint8) {
-        return uint8(borrowAmount * 100 / (effectiveCollateral * ltp));
+    function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
+        return uint256(borrowAmount * 100 / (effectiveCollateral * ltp));
     }
 
-    function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint8) {
-        return uint8((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
+    function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint256) {
+        return uint256((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
     }
 
-    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external pure returns (uint8) {
-        return uint8(borrowAmount / effectiveCollateralPrice);
+    function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external pure returns (uint256) {
+        return uint256(borrowAmount / effectiveCollateralPrice);
     }
 
     function getUtilizationRate() external view returns (uint256) {

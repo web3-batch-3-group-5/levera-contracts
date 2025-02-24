@@ -39,8 +39,8 @@ contract LendingPoolFactory {
         address collateralToken,
         address loanTokenUsdDataFeed,
         address collateralTokenUsdDataFeed,
-        uint8 liquidationThresholdPercentage,
-        uint8 interestRate,
+        uint256 liquidationThresholdPercentage,
+        uint256 interestRate,
         PositionType positionType
     ) external returns (address) {
         bytes32 id = keccak256(abi.encode(loanToken, collateralToken));

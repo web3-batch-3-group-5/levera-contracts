@@ -3,7 +3,7 @@ include .env
 .PHONY: compile deploy deploy-verify test verify
 
 define forge_script
-	forge script Deploy.s.sol --chain-id ${CHAIN_ID} --broadcast --legacy $(1)
+	forge script ./script/Deploy.s.sol --broadcast --legacy --chain-id ${CHAIN_ID} $(1)
 endef
 
 # Define a target to build the project
