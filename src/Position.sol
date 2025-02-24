@@ -6,7 +6,6 @@ import {ILendingPool, ISwapRouter} from "./interfaces/ILendingPool.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
-import {console} from "forge-std/Script.sol";
 
 contract Position {
     error InvalidToken();
@@ -139,7 +138,7 @@ contract Position {
     }
 
     function setRiskInfo(uint256 _effectiveCollateral, uint256 _borrowAmount) public {
-        uint256 effectiveCollateralPrice = convertCollateralPrice(_effectiveCollateral) / 100;
+        uint256 effectiveCollateralPrice = convertCollateralPrice(_effectiveCollateral);
 
         liquidationPrice = lendingPool.getLiquidationPrice(_effectiveCollateral, _borrowAmount);
         health = lendingPool.getHealth(effectiveCollateralPrice, _borrowAmount);
@@ -240,13 +239,12 @@ contract Position {
 
         uint256 amountOut = IERC20(lendingPool.collateralToken()).balanceOf(address(this));
 
-        console.log(amountOut);
         IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
         lendingPool.supplyCollateralByPosition(address(this), amountOut);
 
         _emitSupplyCollateral();
 
-        return (amountOut);
+        return amountOut;
     }
 
     function _checkHealth() internal view {

@@ -41,6 +41,7 @@ contract LendingPool {
     uint8 public interestRate;
     uint256 lastAccrued = block.timestamp;
 
+    mapping(address => bool) public userPositions;
     mapping(address => uint256) public userSupplyShares;
 
     constructor(
@@ -63,6 +64,11 @@ contract LendingPool {
         positionType = _positionType;
         interestRate = _interestRate;
         contractId = _getContractId();
+    }
+
+    modifier onlyActivePosition(address onBehalf) {
+        if (!userPositions[onBehalf]) revert NoActivePosition();
+        _;
     }
 
     function _getContractId() public view returns (bytes32) {
@@ -113,18 +119,30 @@ contract LendingPool {
         emit EventLib.Withdraw(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
 
-    function supplyCollateralByPosition(address onBehalf, uint256 amount) public {
+    function registerPosition(address onBehalf) public {
+        userPositions[onBehalf] = true;
+    }
+
+    function unregisterPosition(address onBehalf) public {
+        userPositions[onBehalf] = true;
+    }
+
+    function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         totalCollateral += amount;
         IERC20(collateralToken).approve(address(this), amount);
         IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
     }
 
-    function withdrawCollateralByPosition(address onBehalf, uint256 amount) public {
+    function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         totalCollateral -= amount;
         IERC20(collateralToken).transfer(msg.sender, amount);
     }
 
-    function borrowByPosition(address onBehalf, uint256 amount) public returns (uint256 shares) {
+    function borrowByPosition(address onBehalf, uint256 amount)
+        public
+        onlyActivePosition(onBehalf)
+        returns (uint256 shares)
+    {
         uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
         if (availableLiquidity < amount) revert InsufficientLiquidity();
 
@@ -142,7 +160,11 @@ contract LendingPool {
         return shares;
     }
 
-    function repayByPosition(address onBehalf, uint256 amount) public returns (uint256 shares) {
+    function repayByPosition(address onBehalf, uint256 amount)
+        public
+        onlyActivePosition(onBehalf)
+        returns (uint256 shares)
+    {
         _accrueInterest();
 
         if (totalBorrowShares == 0) revert InvalidAmount();

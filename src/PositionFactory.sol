@@ -17,16 +17,17 @@ contract PositionFactory {
         Position newPosition = new Position(_lendingPool, msg.sender);
         address positionAddr = address(newPosition);
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
+        positions[positionAddr] = true;
+        ILendingPool(_lendingPool).registerPosition(positionAddr);
 
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
         IERC20(collateralToken).approve(positionAddr, _baseCollateral);
 
-        uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100)) / 100;
+        uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
         uint256 effectiveCollateral = _baseCollateral * _leverage / 100;
         newPosition.setRiskInfo(effectiveCollateral, borrowAmount);
         newPosition.openPosition(_baseCollateral, borrowAmount);
 
-        positions[positionAddr] = true;
         emit PositionCreated(positionAddr, _lendingPool, _baseCollateral, _leverage);
         return positionAddr;
     }
