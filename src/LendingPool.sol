@@ -134,11 +134,13 @@ contract LendingPool {
         totalCollateral += amount;
         IERC20(collateralToken).approve(address(this), amount);
         IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        _indexLendingPool();
     }
 
     function withdrawCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         totalCollateral -= amount;
         IERC20(collateralToken).transfer(msg.sender, amount);
+        _indexLendingPool();
     }
 
     function borrowByPosition(address onBehalf, uint256 amount)
@@ -160,6 +162,7 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
+        _indexLendingPool();
         return shares;
     }
 
@@ -176,10 +179,12 @@ contract LendingPool {
 
         IERC20(loanToken).approve(address(this), amount);
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
+        _indexLendingPool();
     }
 
     function accrueInterest() public {
         _accrueInterest();
+        _indexLendingPool();
     }
 
     function _accrueInterest() internal {
@@ -219,8 +224,22 @@ contract LendingPool {
         return uint256(borrowAmount / effectiveCollateralPrice);
     }
 
-    function getUtilizationRate() external view returns (uint256) {
+    function getUtilizationRate() public view returns (uint256) {
         if (totalBorrowAssets == 0) return 0;
         return totalSupplyAssets * 100 / totalBorrowAssets;
+    }
+
+    function _indexLendingPool() internal {
+        emit EventLib.LendingPool(
+            address(this),
+            address(loanToken),
+            address(collateralToken),
+            totalSupplyAssets,
+            totalSupplyShares,
+            totalBorrowAssets,
+            totalBorrowShares,
+            totalCollateral,
+            getUtilizationRate()
+        );
     }
 }
