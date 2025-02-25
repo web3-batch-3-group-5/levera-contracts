@@ -18,7 +18,7 @@ library EventLib {
 
     event DiscardLendingPool(address indexed lendingPool);
 
-    event LendingPool(
+    event LendingPoolStats(
         address indexed lendingPool,
         address loanToken,
         address collateralToken,

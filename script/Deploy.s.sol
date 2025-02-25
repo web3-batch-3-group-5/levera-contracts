@@ -14,6 +14,11 @@ contract Deploy is Script {
     function deployFactory() public {
         vm.startBroadcast();
         // ISwapRouter uniswapRouter = ISwapRouter(0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8);
+
+        // Arbitrum Sepolia
+        // address mockUniswapRouter = 0xA0DdB46FCB2Aa91E4107C692af9eF74Cd95a082b;
+        // Flame Testnet
+        // address mockUniswapRouter = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
         MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
         PositionFactory positionFactory = new PositionFactory();

@@ -230,7 +230,7 @@ contract LendingPool {
     }
 
     function _indexLendingPool() internal {
-        emit EventLib.LendingPool(
+        emit EventLib.LendingPoolStats(
             address(this),
             address(loanToken),
             address(collateralToken),
