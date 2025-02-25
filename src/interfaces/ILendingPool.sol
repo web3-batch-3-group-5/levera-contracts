@@ -16,6 +16,7 @@ struct PoolParams {
 }
 
 interface ILendingPool {
+    function router() external view returns (address);
     function creator() external view returns (address);
     function owner() external view returns (address);
     function contractId() external view returns (bytes32);

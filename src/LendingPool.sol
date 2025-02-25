@@ -6,7 +6,7 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {IPosition} from "./interfaces/IPosition.sol";
-import {PositionType} from "./interfaces/ILendingPool.sol";
+import {PositionType, ISwapRouter} from "./interfaces/ILendingPool.sol";
 
 interface IFlashLoanCallback {
     function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
@@ -23,6 +23,7 @@ contract LendingPool {
     error ZeroAmount();
     error FlashLoanFailed();
 
+    address public router;
     address public immutable owner;
     address public immutable creator;
     bytes32 public immutable contractId;
@@ -49,6 +50,7 @@ contract LendingPool {
         IERC20 _collateralToken,
         AggregatorV2V3Interface _loanTokenUsdPriceFeed,
         AggregatorV2V3Interface _collateralTokenUsdPriceFeed,
+        address _router,
         uint256 _ltp,
         uint256 _interestRate,
         PositionType _positionType,
@@ -60,6 +62,7 @@ contract LendingPool {
         collateralToken = _collateralToken;
         loanTokenUsdDataFeed = _loanTokenUsdPriceFeed;
         collateralTokenUsdDataFeed = _collateralTokenUsdPriceFeed;
+        router = _router;
         ltp = _ltp;
         positionType = _positionType;
         interestRate = _interestRate;

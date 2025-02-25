@@ -17,9 +17,7 @@ contract Position {
     error ZeroAddress();
     error ZeroAmount();
 
-    // Uniswap Router
-    address public router = 0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8;
-
+    address public router;
     address public immutable owner;
     address public immutable creator;
     ILendingPool public immutable lendingPool;
@@ -34,10 +32,11 @@ contract Position {
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
-    constructor(address _lendingPool, address _creator) {
+    constructor(address _lendingPool, address _router, address _creator) {
         owner = msg.sender;
         creator = _creator;
         lendingPool = ILendingPool(_lendingPool);
+        router = _router;
     }
 
     function _emitUpdatePosition() internal {

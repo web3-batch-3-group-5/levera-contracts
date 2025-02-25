@@ -11,9 +11,9 @@ import {PositionFactory} from "../src/PositionFactory.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {Position} from "../src/Position.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
+import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
 import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
 import {IPosition} from "../src/interfaces/IPosition.sol";
-import {Deploy} from "../script/Deploy.s.sol";
 
 contract IntegrationTest is Test {
     MockERC20 public mockUSDC;
@@ -35,11 +35,10 @@ contract IntegrationTest is Test {
 
     function setUp() public {
         // Setup Factory
-        Deploy deployScript = new Deploy();
-        (lendingPoolFactory, positionFactory, mockFactory) = deployScript.deployFactory();
-        lendingPoolFactory = lendingPoolFactory;
-        positionFactory = positionFactory;
-        mockFactory = mockFactory;
+        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        positionFactory = new PositionFactory();
+        mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
         (address loanToken, address loanTokenAggregator) = mockFactory.createMock("usdc", "USDC", 6, 1e6);
@@ -106,7 +105,7 @@ contract IntegrationTest is Test {
         vm.stopPrank();
 
         // Treat IntegrationTest as PositionFactory
-        Position position = new Position(address(lendingPool), user);
+        Position position = new Position(address(lendingPool), lendingPool.router(), user);
         address positionAddr = address(position);
         positions[alice][positionAddr] = true;
         lendingPool.registerPosition(positionAddr);

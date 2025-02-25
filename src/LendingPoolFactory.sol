@@ -15,13 +15,15 @@ contract LendingPoolFactory {
     error PoolNotFound();
     error Unauthorized();
 
+    address public router;
     address public owner;
     mapping(bytes32 => address) public lendingPoolIds;
     mapping(address => bool) public lendingPools;
     address[] public createdLendingPools;
 
-    constructor() {
+    constructor(address _router) {
         owner = msg.sender;
+        router = _router;
     }
 
     modifier canUpdate(address _lendingPool) {
@@ -51,6 +53,7 @@ contract LendingPoolFactory {
             IERC20(collateralToken),
             AggregatorV2V3Interface(loanTokenUsdDataFeed),
             AggregatorV2V3Interface(collateralTokenUsdDataFeed),
+            router,
             liquidationThresholdPercentage,
             interestRate,
             PositionType(positionType),

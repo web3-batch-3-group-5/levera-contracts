@@ -14,7 +14,7 @@ contract PositionFactory {
         external
         returns (address)
     {
-        Position newPosition = new Position(_lendingPool, msg.sender);
+        Position newPosition = new Position(_lendingPool, ILendingPool(_lendingPool).router(), msg.sender);
         address positionAddr = address(newPosition);
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         positions[msg.sender][positionAddr] = true;
