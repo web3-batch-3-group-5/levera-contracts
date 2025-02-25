@@ -15,8 +15,8 @@ import {IPosition} from "../src/interfaces/IPosition.sol";
 contract LendingPoolTest is Test {
     MockERC20 public mockUSDC;
     MockERC20 public mockWBTC;
-    MockV3Aggregator public usdcUsdPriceFeed;
-    MockV3Aggregator public wbtcUsdPriceFeed;
+    address public usdcUsdPriceFeed;
+    address public wbtcUsdPriceFeed;
     LendingPool public lendingPool;
     LendingPoolFactory public lendingPoolFactory;
     MockFactory public mockFactory;
@@ -35,13 +35,12 @@ contract LendingPoolTest is Test {
         mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
-        (address loanToken, address loanTokenAggregator) = mockFactory.createMock("usdc", "USDC", 6, 1e6);
-        (address collateralToken, address collateralTokenAggregator) =
-            mockFactory.createMock("wbtc", "WBTC", 8, 100_000e8);
+        address loanToken = mockFactory.createMockToken("usdc", "USDC");
+        address collateralToken = mockFactory.createMockToken("wbtc", "WBTC");
         mockUSDC = MockERC20(loanToken);
         mockWBTC = MockERC20(collateralToken);
-        usdcUsdPriceFeed = MockV3Aggregator(loanTokenAggregator);
-        wbtcUsdPriceFeed = MockV3Aggregator(collateralTokenAggregator);
+        usdcUsdPriceFeed = mockFactory.createMockAggregator("usdc", "USDC", 6, 1e6);
+        wbtcUsdPriceFeed = mockFactory.createMockAggregator("wbtc", "WBTC", 8, 100_000e8);
         address lendingPoolAddress = lendingPoolFactory.createLendingPool(
             address(mockUSDC),
             address(mockWBTC),

@@ -8,37 +8,63 @@ contract MockFactory {
     error MockAlreadyCreated();
     error MockNotFound();
 
-    mapping(string => address) public tokens;
-    mapping(string => address) public aggregators;
+    mapping(bytes32 => address) public tokens;
+    mapping(bytes32 => address) public aggregators;
 
-    function createMock(string calldata name, string calldata symbol, uint8 decimals, int256 price)
-        public
-        returns (address tokenAddress, address aggregatorAddress)
-    {
-        if (tokens[name] != address(0) || aggregators[name] != address(0)) revert MockAlreadyCreated();
+    function _getId(string calldata name, string calldata symbol) internal pure returns (bytes32) {
+        return keccak256(abi.encode(name, symbol));
+    }
+
+    function createMockToken(string calldata name, string calldata symbol) public returns (address) {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (tokens[id] != address(0)) revert MockAlreadyCreated();
 
         // Deploy new MockERC20Token
         MockERC20 token = new MockERC20(name, symbol);
-        tokens[name] = address(token);
+        tokens[id] = address(token);
+
+        return address(token);
+    }
+
+    function createMockAggregator(string calldata name, string calldata symbol, uint8 decimals, int256 price)
+        public
+        returns (address)
+    {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (aggregators[id] != address(0)) revert MockAlreadyCreated();
 
         // Deploy new MockV3Aggregator
         MockV3Aggregator aggregator = new MockV3Aggregator(decimals, price);
-        aggregators[name] = address(aggregator);
+        aggregators[id] = address(aggregator);
 
-        return (address(token), address(aggregator));
+        return address(aggregator);
     }
 
-    function storeMock(string calldata name, address _mockToken, address _mockAggregator) public {
-        if (tokens[name] != address(0) || aggregators[name] != address(0)) revert MockAlreadyCreated();
+    function storeMockToken(string calldata name, string calldata symbol, address _mockToken) public {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (tokens[id] != address(0)) revert MockAlreadyCreated();
 
-        tokens[name] = _mockToken;
-        aggregators[name] = _mockAggregator;
+        tokens[id] = _mockToken;
     }
 
-    function discardMock(string calldata name) public {
-        if (tokens[name] == address(0) || aggregators[name] == address(0)) revert MockNotFound();
+    function storeMockAggregator(string calldata name, string calldata symbol, address _mockAggregator) public {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (aggregators[id] != address(0)) revert MockAlreadyCreated();
 
-        delete tokens[name];
-        delete aggregators[name];
+        aggregators[id] = _mockAggregator;
+    }
+
+    function discardMockToken(string calldata name, string calldata symbol) public {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (tokens[id] == address(0)) revert MockNotFound();
+
+        delete tokens[id];
+    }
+
+    function discardMockAggregator(string calldata name, string calldata symbol) public {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (aggregators[id] == address(0)) revert MockNotFound();
+
+        delete aggregators[id];
     }
 }

@@ -6,9 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
-import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {PositionFactory} from "../src/PositionFactory.sol";
+import {MockFactory} from "../src/mocks/MockFactory.sol";
+import {LaUSDC} from "../src/mocks/LaUSDC.sol";
+import {LaWBTC} from "../src/mocks/LaWBTC.sol";
+import {LaWETH} from "../src/mocks/LaWETH.sol";
 
 contract Deploy is Script {
     function deployFactory() public {
@@ -23,12 +26,18 @@ contract Deploy is Script {
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
         PositionFactory positionFactory = new PositionFactory();
         MockFactory mockFactory = new MockFactory();
+        // LaUSDC laUSDC = new LaUSDC();
+        // LaWBTC laWBTC = new LaWBTC();
+        // LaWETH laWETH = new LaWETH();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Position Factory deployed at:", address(positionFactory));
         console.log("Mock Factory deployed at:", address(mockFactory));
+        // console.log("Mock Factory deployed at:", address(laUSDC));
+        // console.log("Mock Factory deployed at:", address(laWBTC));
+        // console.log("Mock Factory deployed at:", address(laWETH));
         console.log("==============================================================");
 
         vm.stopBroadcast();
