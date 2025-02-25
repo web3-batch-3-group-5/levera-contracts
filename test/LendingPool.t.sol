@@ -8,9 +8,9 @@ import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
+import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
 import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
 import {IPosition} from "../src/interfaces/IPosition.sol";
-import {Deploy} from "../script/Deploy.s.sol";
 
 contract LendingPoolTest is Test {
     MockERC20 public mockUSDC;
@@ -30,10 +30,9 @@ contract LendingPoolTest is Test {
 
     function setUp() public {
         // Setup Factory
-        Deploy deployScript = new Deploy();
-        (lendingPoolFactory,, mockFactory) = deployScript.deployFactory();
-        lendingPoolFactory = lendingPoolFactory;
-        mockFactory = mockFactory;
+        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
         (address loanToken, address loanTokenAggregator) = mockFactory.createMock("usdc", "USDC", 6, 1e6);

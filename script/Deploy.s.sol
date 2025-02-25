@@ -11,27 +11,26 @@ import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {PositionFactory} from "../src/PositionFactory.sol";
 
 contract Deploy is Script {
-    function deployFactory() public returns (LendingPoolFactory, PositionFactory, MockFactory) {
+    function deployFactory() public {
         vm.startBroadcast();
         // ISwapRouter uniswapRouter = ISwapRouter(0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8);
-        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        // MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        address mockUniswapRouter = 0xA0DdB46FCB2Aa91E4107C692af9eF74Cd95a082b;
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
-        PositionFactory positionFactory = new PositionFactory();
-        MockFactory mockFactory = new MockFactory();
+        // PositionFactory positionFactory = new PositionFactory();
+        // MockFactory mockFactory = new MockFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
-        console.log("Position Factory deployed at:", address(positionFactory));
-        console.log("Mock Factory deployed at:", address(mockFactory));
+        // console.log("Position Factory deployed at:", address(positionFactory));
+        // console.log("Mock Factory deployed at:", address(mockFactory));
         console.log("==============================================================");
 
         vm.stopBroadcast();
-
-        return (lendingPoolFactory, positionFactory, mockFactory);
     }
 
-    function run() external returns (LendingPoolFactory, PositionFactory, MockFactory) {
+    function run() external {
         return deployFactory();
     }
 }

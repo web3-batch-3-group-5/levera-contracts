@@ -92,8 +92,8 @@ library EventLib {
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
 
     event PositionCreated(
-        address lendingPool, address caller, address positionAddress, uint256 _baseCollateral, uint256 _leverage
+        address lendingPool, address caller, address positionAddress, uint256 baseCollateral, uint256 leverage
     );
 
-    event PositionDeleted(address _lendingPool, address caller, address onBehalf);
+    event PositionDeleted(address lendingPool, address indexed caller, address onBehalf);
 }
