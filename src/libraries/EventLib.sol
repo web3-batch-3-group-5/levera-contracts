@@ -95,5 +95,5 @@ library EventLib {
         address lendingPool, address caller, address positionAddress, uint256 baseCollateral, uint256 leverage
     );
 
-    event PositionDeleted(address lendingPool, address indexed caller, address onBehalf);
+    event PositionDeleted(address lendingPool, address caller, address onBehalf);
 }

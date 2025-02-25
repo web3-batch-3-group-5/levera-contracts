@@ -17,13 +17,13 @@ contract Deploy is Script {
         // MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
         address mockUniswapRouter = 0xA0DdB46FCB2Aa91E4107C692af9eF74Cd95a082b;
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
-        // PositionFactory positionFactory = new PositionFactory();
+        PositionFactory positionFactory = new PositionFactory();
         // MockFactory mockFactory = new MockFactory();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
-        // console.log("Position Factory deployed at:", address(positionFactory));
+        console.log("Position Factory deployed at:", address(positionFactory));
         // console.log("Mock Factory deployed at:", address(mockFactory));
         console.log("==============================================================");
 

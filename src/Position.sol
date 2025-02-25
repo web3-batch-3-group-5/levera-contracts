@@ -281,6 +281,7 @@ contract Position {
             uint256 repaidShares = convertBorrowAmountToShares(amountOut);
             lendingPool.repayByPosition(msg.sender, repaidShares);
             borrowShares -= repaidShares;
+            _emitRepay();
         }
 
         effectiveCollateral = newEffectiveCollateral;
@@ -293,9 +294,11 @@ contract Position {
     function closePosition() external {
         uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
+        _emitWithdrawCollateral();
 
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
         lendingPool.repayByPosition(msg.sender, borrowShares);
+        _emitRepay();
 
         uint256 diffAmount = amountOut - borrowAmount;
         IERC20(lendingPool.loanToken()).transfer(msg.sender, diffAmount);
