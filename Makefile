@@ -3,7 +3,7 @@ include .env
 .PHONY: compile deploy deploy-verify test verify
 
 define forge_script
-	forge script ./script/Deploy.s.sol --broadcast --legacy $(1)
+	forge script ./script/Deploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1)
 endef
 
 # Define a target to build the project
@@ -16,18 +16,14 @@ deploy: build
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build
-	@cmd="$(call forge_script,--rpc-url ${RPC_URL} \
-		--private-key ${WALLET_PRIVATE_KEY} \
-		--verifier ${VERIFIER} \
-		--verifier-url ${VERIFIER_URL} \
-		--verify)"; \
+	@cmd="$(call forge_script, --verifier ${VERIFIER} --verifier-url ${VERIFIER_URL} --verify)"; \
 	if [ -n "$$VERIFIER_API_KEY" ]; then cmd="$$cmd --verifier-api-key $$VERIFIER_API_KEY"; fi; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
 	eval $$cmd
 
 # Define a pre-existing contract address to verify deployment using the specified network
 verify:
-	@cmd="forge verify-contract ${address} ${contract} --rpc-url ${RPC_URL} --chain-id ${CHAIN_ID} \
+	@cmd="forge verify-contract ${address} ${contract} --chain-id ${CHAIN_ID} \
 		--verifier ${VERIFIER} --verifier-url ${VERIFIER_URL}"; \
 	if [ -n "$$VERIFIER_API_KEY" ]; then cmd="$$cmd --verifier-api-key $$VERIFIER_API_KEY"; fi; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
