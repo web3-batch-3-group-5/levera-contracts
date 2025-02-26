@@ -11,16 +11,12 @@ contract MockFactory {
     mapping(bytes32 => address) public tokens;
     mapping(bytes32 => address) public aggregators;
 
-    function _getId(string calldata name, string calldata symbol) internal pure returns (bytes32) {
-        return keccak256(abi.encode(name, symbol));
-    }
-
-    function createMockToken(string calldata name, string calldata symbol) public returns (address) {
+    function createMockToken(string calldata name, string calldata symbol, uint8 decimals) public returns (address) {
         bytes32 id = keccak256(abi.encode(name, symbol));
         if (tokens[id] != address(0)) revert MockAlreadyCreated();
 
         // Deploy new MockERC20Token
-        MockERC20 token = new MockERC20(name, symbol);
+        MockERC20 token = new MockERC20(name, symbol, decimals);
         tokens[id] = address(token);
 
         return address(token);

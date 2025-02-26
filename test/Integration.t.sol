@@ -41,9 +41,9 @@ contract IntegrationTest is Test {
         mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
-        address loanToken = mockFactory.createMockToken("usdc", "USDC");
+        address loanToken = mockFactory.createMockToken("usdc", "USDC", 6);
         address loanTokenAggregator = mockFactory.createMockAggregator("usdc", "USDC", 6, 1e6);
-        address collateralToken = mockFactory.createMockToken("wbtc", "WBTC");
+        address collateralToken = mockFactory.createMockToken("wbtc", "WBTC", 8);
         address collateralTokenAggregator = mockFactory.createMockAggregator("wbtc", "WBTC", 8, 100_000e8);
         mockUSDC = MockERC20(loanToken);
         mockWBTC = MockERC20(collateralToken);
