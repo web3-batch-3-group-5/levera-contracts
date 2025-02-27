@@ -9,6 +9,7 @@ import {EventLib} from "./libraries/EventLib.sol";
 
 contract PositionFactory {
     mapping(address => mapping(address => bool)) public positions;
+    mapping(address => address[]) public userPositions; // Stores positions per user
 
     function createPosition(address _lendingPool, uint256 _baseCollateral, uint256 _leverage)
         external
@@ -17,21 +18,18 @@ contract PositionFactory {
         Position newPosition = new Position(_lendingPool, ILendingPool(_lendingPool).router(), msg.sender);
         address positionAddr = address(newPosition);
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
+
         positions[msg.sender][positionAddr] = true;
+        userPositions[msg.sender].push(positionAddr); // Store position
+
         ILendingPool(_lendingPool).registerPosition(positionAddr);
 
-        // Ensure sender has enough balance
         require(IERC20(collateralToken).balanceOf(msg.sender) >= _baseCollateral, "Insufficient Balance");
-
-        // Ensure sender has approved enough allowance beforehand
         require(
             IERC20(collateralToken).allowance(msg.sender, address(this)) >= _baseCollateral, "Insufficient Allowance"
         );
 
-        // Transfer collateral from sender to contract
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
-
-        // Approve position contract to use collateral
         IERC20(collateralToken).approve(positionAddr, _baseCollateral);
 
         uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
@@ -49,9 +47,27 @@ contract PositionFactory {
         uint256 withdrawAmount = IPosition(onBehalf).closePosition();
         positions[msg.sender][onBehalf] = false;
 
+        _removeUserPosition(msg.sender, onBehalf); // Remove from array
+
         IERC20(loanToken).approve(address(this), withdrawAmount);
         IERC20(loanToken).transfer(msg.sender, withdrawAmount);
+
         emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
         return onBehalf;
+    }
+
+    function _removeUserPosition(address user, address position) internal {
+        uint256 length = userPositions[user].length;
+        for (uint256 i = 0; i < length; i++) {
+            if (userPositions[user][i] == position) {
+                userPositions[user][i] = userPositions[user][length - 1];
+                userPositions[user].pop();
+                break;
+            }
+        }
+    }
+
+    function getUserPositions(address user) external view returns (address[] memory) {
+        return userPositions[user];
     }
 }

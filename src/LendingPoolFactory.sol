@@ -158,8 +158,4 @@ contract LendingPoolFactory {
         }
         return size > 0;
     }
-
-    function getAllLendingPools() external view returns (address[] memory) {
-        return createdLendingPools;
-    }
 }

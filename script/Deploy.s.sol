@@ -21,11 +21,11 @@ contract Deploy is Script {
         // ISwapRouter uniswapRouter = ISwapRouter(0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8);
 
         // Arbitrum Sepolia
-        // address mockUniswapRouter = 0xb2defA89d4D2F0AD66A9A8d28486F1781EEa7c2A;
+        address mockUniswapRouter = 0x31e632baEcBe002F198e7F8A439d60502dE43412;
         // Flame Testnet
         // address mockUniswapRouter = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
-        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
-        LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        // MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        // LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
         PositionFactory positionFactory = new PositionFactory();
         // MockFactory mockFactory = new MockFactory();
         // LaUSDC laUSDC = new LaUSDC();
@@ -36,7 +36,7 @@ contract Deploy is Script {
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
-        console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
+        // console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Position Factory deployed at:", address(positionFactory));
         // console.log("Mock Factory deployed at:", address(mockFactory));
         // console.log("Mock laUSDC deployed at:", address(laUSDC));
@@ -45,13 +45,6 @@ contract Deploy is Script {
         // console.log("Mock laDAI deployed at:", address(laDAI));
         // console.log("Mock laUSDT deployed at:", address(laUSDT));
         console.log("==============================================================");
-        // Fetch all pools
-        address[] memory pools = lendingPoolFactory.getAllLendingPools();
-        console.log("Total Lending Pools:", pools.length);
-        for (uint256 i = 0; i < pools.length; i++) {
-            console.log("Pool Address Created:", pools[i]);
-        }
-
         vm.stopBroadcast();
     }
 
