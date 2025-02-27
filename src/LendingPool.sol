@@ -126,7 +126,7 @@ contract LendingPool {
     }
 
     function unregisterPosition(address onBehalf) public {
-        userPositions[onBehalf] = true;
+        userPositions[onBehalf] = false;
     }
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {

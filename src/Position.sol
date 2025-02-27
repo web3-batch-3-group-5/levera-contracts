@@ -279,7 +279,7 @@ contract Position {
             uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repaidCollateral);
 
             uint256 repaidShares = convertBorrowAmountToShares(amountOut);
-            lendingPool.repayByPosition(msg.sender, repaidShares);
+            lendingPool.repayByPosition(address(this), repaidShares);
             borrowShares -= repaidShares;
             _emitRepay();
         }
@@ -298,7 +298,7 @@ contract Position {
         uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
         IERC20(lendingPool.loanToken()).approve(address(lendingPool), amountOut);
-        lendingPool.repayByPosition(msg.sender, borrowShares);
+        lendingPool.repayByPosition(address(this), borrowShares);
         _emitRepay();
 
         uint256 diffAmount = amountOut - borrowAmount;
