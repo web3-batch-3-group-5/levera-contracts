@@ -95,6 +95,12 @@ contract REPLDeploy is Script {
         console.log("Loan Token Balance", MockERC20(loanToken).balanceOf(address(this)));
         console.log("Collateral Token Balance", MockERC20(collateralToken).balanceOf(address(this)));
 
+        address[] memory pools = lendingPoolFactory.getAllLendingPools();
+        console.log("Total Lending Pools:", pools.length);
+        for (uint256 i = 0; i < pools.length; i++) {
+            console.log("Pool Address Created:", pools[i]);
+        }
+
         vm.stopBroadcast();
     }
 
