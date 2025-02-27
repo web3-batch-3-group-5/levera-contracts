@@ -9,7 +9,7 @@ import {EventLib} from "./libraries/EventLib.sol";
 
 contract PositionFactory {
     mapping(address => mapping(address => bool)) public positions;
-    mapping(address => address[]) public userPositions; // Stores positions per user
+    mapping(address => mapping(address => address[])) public userPoolPositions; // Stores positions per user
 
     function createPosition(address _lendingPool, uint256 _baseCollateral, uint256 _leverage)
         external
@@ -20,7 +20,7 @@ contract PositionFactory {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
 
         positions[msg.sender][positionAddr] = true;
-        userPositions[msg.sender].push(positionAddr); // Store position
+        userPoolPositions[msg.sender][_lendingPool].push(positionAddr); // Store position
 
         ILendingPool(_lendingPool).registerPosition(positionAddr);
 
@@ -47,7 +47,7 @@ contract PositionFactory {
         uint256 withdrawAmount = IPosition(onBehalf).closePosition();
         positions[msg.sender][onBehalf] = false;
 
-        _removeUserPosition(msg.sender, onBehalf); // Remove from array
+        _removeUserPosition(msg.sender, _lendingPool, onBehalf); // Remove from array
 
         IERC20(loanToken).approve(address(this), withdrawAmount);
         IERC20(loanToken).transfer(msg.sender, withdrawAmount);
@@ -56,18 +56,18 @@ contract PositionFactory {
         return onBehalf;
     }
 
-    function _removeUserPosition(address user, address position) internal {
-        uint256 length = userPositions[user].length;
+    function _removeUserPosition(address user, address _lendingPool, address position) internal {
+        uint256 length = userPoolPositions[user][_lendingPool].length;
         for (uint256 i = 0; i < length; i++) {
-            if (userPositions[user][i] == position) {
-                userPositions[user][i] = userPositions[user][length - 1];
-                userPositions[user].pop();
+            if (userPoolPositions[user][_lendingPool][i] == position) {
+                userPoolPositions[user][_lendingPool][i] = userPoolPositions[user][_lendingPool][length - 1];
+                userPoolPositions[user][_lendingPool].pop();
                 break;
             }
         }
     }
 
-    function getUserPositions(address user) external view returns (address[] memory) {
-        return userPositions[user];
+    function getPoolPositions(address user, address _lendingPool) external view returns (address[] memory) {
+        return userPoolPositions[user][_lendingPool];
     }
 }
