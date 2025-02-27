@@ -45,6 +45,12 @@ contract Deploy is Script {
         // console.log("Mock laDAI deployed at:", address(laDAI));
         // console.log("Mock laUSDT deployed at:", address(laUSDT));
         console.log("==============================================================");
+        // Fetch all pools
+        address[] memory pools = lendingPoolFactory.getAllLendingPools();
+        console.log("Total Lending Pools:", pools.length);
+        for (uint256 i = 0; i < pools.length; i++) {
+            console.log("Pool Address Created:", pools[i]);
+        }
 
         vm.stopBroadcast();
     }

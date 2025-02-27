@@ -68,8 +68,8 @@ $ cast --help
 
 ## Smart Contract Documentation
 
-[How It Works](./HowItWorks.md)
-[LendingPool Factory](./LendingPoolFactory.md)
-[LendingPool](./LendingPool.md)
-[PositionFactory](./PositionFactory.md)
-[Position](./Position.md)
+##### [How It Works](./HowItWorks.md) 
+##### [LendingPool Factory](./LendingPoolFactory.md) 
+##### [LendingPool](./LendingPool.md) 
+##### [PositionFactory](./PositionFactory.md) 
+##### [Position](./Position.md) 
