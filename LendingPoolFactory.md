@@ -11,9 +11,8 @@ The `LendingPoolFactory` contract is responsible for creating, managing, and tra
 1. **Create Lending Pools**: Deploys new `LendingPool` contracts with specified parameters.
 2. **Store Existing Lending Pools**: Allows the factory to track existing lending pools.
 3. **Update Lending Pool Status**: Enables the activation or deactivation of lending pools.
-4. **Discard Lending Pools**: Removes lending pools from the factory's tracking system.
-5. **Token Metadata Utilities**: Provides functions to fetch token names and symbols.
-6. **Contract Validation**: Ensures that only valid contracts are registered as lending pools.
+4. **Token Metadata Utilities**: Provides functions to fetch token names and symbols.
+5. **Contract Validation**: Ensures that only valid contracts are registered as lending pools.
 
 ---
 
@@ -108,23 +107,6 @@ Stores an existing lending pool in the factory. Validates the pool and ensures i
 
 - **Parameters**:
   - `_lendingPool`: Address of the lending pool to store.
-
----
-
-#### Discard Lending Pool
-
-```solidity
-function discardLendingPool(address _lendingPool)
-    external
-    isExist(_lendingPool)
-    canUpdate(_lendingPool)
-```
-
-Removes a lending pool from the factory's tracking system.
-
-- **Parameters**:
-  - `_lendingPool`: Address of the lending pool to discard.
-
 ---
 
 #### Get Token Name
@@ -186,7 +168,6 @@ Emits an event with the details of a lending pool.
 |--------------------------------|-----------------------------------------------------------------------------|
 | `CreateLendingPool`            | Emitted when a new lending pool is created.                                 |
 | `StoreLendingPool`             | Emitted when an existing lending pool is stored in the factory.             |
-| `DiscardLendingPool`           | Emitted when a lending pool is discarded.                                   |
 | `AllLendingPool`               | Emitted when a lending pool is indexed.                                     |
 
 ---

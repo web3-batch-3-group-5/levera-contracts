@@ -32,15 +32,11 @@ The system consists of four main contracts:
 
 ---
 
-### 2. **Supplying and Borrowing in a Lending Pool**
+### 2. **Supplying in a Lending Pool**
 
 1. **Supply Assets**:
    - Users can call the `supply` function in the **LendingPool** contract to deposit assets into the pool.
    - They receive shares proportional to their deposit, which represent their stake in the pool.
-
-2. **Borrow Assets**:
-   - Users can call the `borrowByPosition` function to borrow assets by providing collateral.
-   - The borrowed amount is calculated based on the collateral value and liquidation threshold.
 
 3. **Interest Accrual**:
    - Interest is accrued on borrowed assets and distributed to suppliers over time.
@@ -79,6 +75,9 @@ The system consists of four main contracts:
 3. **Adjusting Leverage**:
    - Users can call the `updateLeverage` function to increase or decrease the leverage of their position.
    - Flash loans are used to adjust the borrowed assets and collateral accordingly.
+   - Position Contract can call the `borrowByPosition` function to borrow assets for adjusting leverage.
+   - The borrowed amount is calculated based on the collateral value and liquidation threshold.
+
 
 4. **Risk Management**:
    - The **Position** contract continuously tracks the liquidation price, health factor, and loan-to-value (LTV) ratio.
@@ -100,20 +99,6 @@ The system consists of four main contracts:
 
 4. **Event Emission**:
    - The `PositionDeleted` event is emitted to track the closed position.
-
----
-
-### 6. **Discarding a Lending Pool**
-
-1. **User Interaction**:
-   - The owner or creator of a lending pool calls the `discardLendingPool` function in the **LendingPoolFactory** contract.
-
-2. **Pool Removal**:
-   - The lending pool is deactivated and removed from the factory's tracking system.
-   - All associated positions must be closed before discarding the pool.
-
-3. **Event Emission**:
-   - The `DiscardLendingPool` event is emitted to track the removal.
 
 ---
 
