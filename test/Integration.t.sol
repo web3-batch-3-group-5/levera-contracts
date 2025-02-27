@@ -41,10 +41,13 @@ contract IntegrationTest is Test {
         mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
-        address loanToken = mockFactory.createMockToken("usdc", "USDC", 6);
-        address loanTokenAggregator = mockFactory.createMockAggregator("usdc", "USDC", 6, 1e6);
-        address collateralToken = mockFactory.createMockToken("wbtc", "WBTC", 8);
-        address collateralTokenAggregator = mockFactory.createMockAggregator("wbtc", "WBTC", 8, 100_000e8);
+        address loanToken = mockFactory.createMockToken("usdc", "USDC", 18);
+        address loanTokenAggregator = mockFactory.createMockAggregator("usdc", "USDC", 18, 1e18);
+        address collateralToken = mockFactory.createMockToken("wbtc", "WBTC", 18);
+        address collateralTokenAggregator = mockFactory.createMockAggregator("wbtc", "WBTC", 18, 100_000e18);
+        mockUniswapRouter.setPriceFeed(loanToken, loanTokenAggregator);
+        mockUniswapRouter.setPriceFeed(collateralToken, collateralTokenAggregator);
+
         mockUSDC = MockERC20(loanToken);
         mockWBTC = MockERC20(collateralToken);
         usdcUsdPriceFeed = MockV3Aggregator(loanTokenAggregator);
@@ -71,22 +74,22 @@ contract IntegrationTest is Test {
         console.log("Position Type (0 = LONG, 1 = SHORT):", uint8(positionType));
         console.log("==============================================================");
 
-        mockUSDC.mint(address(this), 1_000_000e6);
-        supplyLiquidity(500_000e6);
+        mockUSDC.mint(address(this), 1_000_000e18);
+        supplyLiquidity(1500e18);
 
-        mockUSDC.mint(alice, 200_000e6);
-        mockWBTC.mint(alice, 3e8);
+        mockUSDC.mint(alice, 2_000e18);
+        mockWBTC.mint(alice, 3e18);
         // Alice supply liquidity
-        vm.startPrank(alice);
-        supplyLiquidity(50_000e6);
-        vm.stopPrank();
+        // vm.startPrank(alice);
+        // supplyLiquidity(50_000e18);
+        // vm.stopPrank();
 
-        mockUSDC.mint(bob, 200_000e6);
-        mockWBTC.mint(bob, 2e8);
+        mockUSDC.mint(bob, 2_000e18);
+        mockWBTC.mint(bob, 2e18);
         // Bob supply liquidity
-        vm.startPrank(bob);
-        supplyLiquidity(50_000e6);
-        vm.stopPrank();
+        // vm.startPrank(bob);
+        // supplyLiquidity(50_000e18);
+        // vm.stopPrank();
     }
 
     function supplyLiquidity(uint256 amount) internal {
@@ -117,13 +120,14 @@ contract IntegrationTest is Test {
         uint256 borrowAmount = position.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
         position.setRiskInfo(effectiveCollateral, borrowAmount);
 
-        // Replace openPosition
-        position.addCollateral(_baseCollateral);
-        uint256 borrowCollateral = test_flashLoan(borrowAmount);
-        position.borrow(borrowAmount);
+        position.openPosition(_baseCollateral, borrowAmount);
 
-        IERC20(mockWBTC).approve(positionAddr, borrowCollateral);
-        position.addCollateral(borrowCollateral);
+        // Replace openPosition
+        // position.addCollateral(_baseCollateral);
+        // uint256 borrowCollateral = test_flashLoan(borrowAmount);
+        // position.borrow(borrowAmount);
+        // IERC20(mockWBTC).approve(positionAddr, borrowCollateral);
+        // position.addCollateral(borrowCollateral);
 
         console.log("Estimated Borrow Collateral Price", position.convertBorrowSharesToAmount(position.borrowShares()));
 
@@ -131,7 +135,7 @@ contract IntegrationTest is Test {
     }
 
     function test_createPosition() public {
-        uint256 baseCollateral = 1e8;
+        uint256 baseCollateral = 1e12;
         uint8 leverage = 200;
 
         console.log("Before Alice create position");
@@ -158,7 +162,7 @@ contract IntegrationTest is Test {
     }
 
     function test_supplyCollateralByPosition_NoActivePosition() public {
-        uint256 supplyCollateralAmount = 100_000e6;
+        uint256 supplyCollateralAmount = 100_000e18;
         address randomOnBehalf = address(0x1234567890123456789012345678901234567890);
 
         vm.expectRevert(LendingPool.NoActivePosition.selector);
@@ -166,9 +170,9 @@ contract IntegrationTest is Test {
     }
 
     function test_addCollateral() public {
-        uint256 baseCollateral = 1e8;
+        uint256 baseCollateral = 1e12;
         uint8 leverage = 200;
-        uint256 addedCollateral = 5e7;
+        uint256 addedCollateral = 5e11;
 
         // Alice Create Position
         address onBehalf = createPosition(alice, baseCollateral, leverage);

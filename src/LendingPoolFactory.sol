@@ -27,7 +27,7 @@ contract LendingPoolFactory {
     }
 
     modifier canUpdate(address _lendingPool) {
-        if (msg.sender != ILendingPool(_lendingPool).creator() || msg.sender != owner) revert Unauthorized();
+        if (msg.sender != ILendingPool(_lendingPool).creator() && msg.sender != owner) revert Unauthorized();
         _;
     }
 
@@ -56,7 +56,7 @@ contract LendingPoolFactory {
             router,
             liquidationThresholdPercentage,
             interestRate,
-            PositionType(positionType),
+            positionType,
             msg.sender
         );
         lendingPoolIds[id] = address(lendingPool);
@@ -86,8 +86,8 @@ contract LendingPoolFactory {
     }
 
     function storeLendingPool(address _lendingPool) external {
-        if (lendingPools[_lendingPool]) revert PoolAlreadyCreated();
         if (_lendingPool == address(0) || !isContract(_lendingPool)) revert NotALendingPool();
+        if (lendingPools[_lendingPool]) revert PoolAlreadyCreated();
 
         LendingPool lendingPool = LendingPool(_lendingPool);
         address loanToken = address(lendingPool.loanToken());
@@ -99,10 +99,9 @@ contract LendingPoolFactory {
 
         bytes32 id = lendingPool.contractId();
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
+
         lendingPoolIds[id] = _lendingPool;
-
         lendingPools[_lendingPool] = true;
-
         _indexLendingPool(_lendingPool);
 
         emit EventLib.StoreLendingPool(_lendingPool, loanToken, collateralToken, lendingPool.owner(), true);
@@ -117,10 +116,18 @@ contract LendingPoolFactory {
         delete lendingPoolIds[id];
         delete lendingPools[_lendingPool];
 
+        for (uint256 i = 0; i < createdLendingPools.length; i++) {
+            if (createdLendingPools[i] == _lendingPool) {
+                createdLendingPools[i] = createdLendingPools[createdLendingPools.length - 1];
+                createdLendingPools.pop();
+                break;
+            }
+        }
+
         emit EventLib.DiscardLendingPool(_lendingPool);
     }
 
-    function _indexLendingPool(address _lendingPool) internal isExist(_lendingPool) {
+    function _indexLendingPool(address _lendingPool) internal {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         address loanToken = ILendingPool(_lendingPool).loanToken();
         address creator = ILendingPool(_lendingPool).creator();

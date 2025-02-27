@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
 
@@ -24,7 +25,7 @@ contract REPLMockDeploy is Script {
     // address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
     // address private constant MOCK_FACTORY_ADDR = 0xc7247F78c46152Ecc3184BA51B8604D6eb807200;
     // Arbitrum Sepolia
-    address private constant MOCK_UNISWAP_ROUTER_ADDR = 0xA0DdB46FCB2Aa91E4107C692af9eF74Cd95a082b;
+    address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x31e632baEcBe002F198e7F8A439d60502dE43412;
     address private constant MOCK_FACTORY_ADDR = 0x72BA07E6bc0b4eFC5b2069b816Ed40F64dc67C17;
 
     constructor() {
@@ -44,6 +45,8 @@ contract REPLMockDeploy is Script {
         mockTokens.push(
             MockConfig(0x06322002130c5Fd3a5715F28f46EC28fa99584bE, "Mock Wrapped Ethereum", "laWETH", 18, 2_500e18)
         );
+        mockTokens.push(MockConfig(0xc0233309cD5e1fa340E2b681Dba3D4240aB6F49d, "Mock USD Token", "laUSDT", 18, 1e18));
+        mockTokens.push(MockConfig(0x51a439096Ee300eC7a07FFd7Fa55a1f8723948c5, "Mock DAI", "laDAI", 18, 1e18));
     }
 
     function setupFlameMockUniswapRouter() public {
@@ -54,14 +57,18 @@ contract REPLMockDeploy is Script {
         MockUniswapRouter mockUniswapRouter = MockUniswapRouter(MOCK_UNISWAP_ROUTER_ADDR);
 
         console.log("================ Configure Mock in Router =================");
+        console.log("Mock Uniswap Router deployed at:", MOCK_UNISWAP_ROUTER_ADDR);
         for (uint256 i = 0; i < mockTokens.length; i++) {
             MockConfig memory token = mockTokens[i];
             // mockFactory.storeMockToken(token.name, token.symbol, token.contractAddr);
 
-            // Discard if exist
-            mockFactory.discardMockAggregator(token.name, token.symbol);
+            // // Discard if exist
+            // mockFactory.discardMockAggregator(token.name, token.symbol);
 
-            address priceFeed = mockFactory.createMockAggregator(token.name, token.symbol, token.decimals, token.price);
+            // address priceFeed = mockFactory.createMockAggregator(token.name, token.symbol, token.decimals, token.price);
+            bytes32 id = keccak256(abi.encode(token.name, token.symbol));
+            address priceFeed = mockFactory.aggregators(id);
+
             mockUniswapRouter.setPriceFeed(token.contractAddr, priceFeed);
             console.log(
                 string(
@@ -71,6 +78,16 @@ contract REPLMockDeploy is Script {
         }
         console.log("===========================================================");
         vm.stopBroadcast();
+    }
+
+    function mintFlameMockToken() public {
+        address receiver = 0x2808Dc7E5eFC9409CdD6166E01ce44Ae9a84bb32;
+        for (uint256 i = 0; i < mockTokens.length; i++) {
+            address token = mockTokens[i].contractAddr;
+            MockERC20 mockERC20 = MockERC20(token);
+            mockERC20.mint(receiver, 10 ** 18);
+            console.log(string(abi.encodePacked("Successfully mint ", mockTokens[i].symbol, " to Address: ", receiver)));
+        }
     }
 
     function run() external {

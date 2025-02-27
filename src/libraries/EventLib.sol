@@ -18,7 +18,7 @@ library EventLib {
 
     event DiscardLendingPool(address indexed lendingPool);
 
-    event LendingPoolStats(
+    event LendingPoolStat(
         address indexed lendingPool,
         address loanToken,
         address collateralToken,
@@ -26,8 +26,7 @@ library EventLib {
         uint256 totalSupplyShares,
         uint256 totalBorrowAssets,
         uint256 totalBorrowShares,
-        uint256 totalCollateral,
-        uint256 utilizationRate
+        uint256 totalCollateral
     );
 
     event UserSupplyShare(address indexed lendingPool, address indexed caller, uint256 supplyShare);

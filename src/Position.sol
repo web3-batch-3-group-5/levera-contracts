@@ -231,7 +231,7 @@ contract Position {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: amount,
-                amountOutMinimum: amount * 98 / 100,
+                amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             })
         );
@@ -291,16 +291,18 @@ contract Position {
         _emitUpdatePosition();
     }
 
-    function closePosition() external {
-        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
+    function closePosition() external returns (uint256) {
         lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
         _emitWithdrawCollateral();
 
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
+        IERC20(lendingPool.loanToken()).approve(address(lendingPool), amountOut);
         lendingPool.repayByPosition(msg.sender, borrowShares);
         _emitRepay();
 
         uint256 diffAmount = amountOut - borrowAmount;
+        IERC20(lendingPool.loanToken()).approve(address(this), diffAmount);
         IERC20(lendingPool.loanToken()).transfer(msg.sender, diffAmount);
 
         borrowShares = 0;
@@ -311,5 +313,7 @@ contract Position {
         health = 0;
         ltv = 0;
         _emitUpdatePosition();
+
+        return diffAmount;
     }
 }

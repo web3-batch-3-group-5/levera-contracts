@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
+import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {ISwapRouter} from "../interfaces/ILendingPool.sol";
+import {MockERC20} from "./MockERC20.sol";
 
 contract MockUniswapRouter is ISwapRouter {
-    mapping(address => MockV3Aggregator) public priceFeeds;
+    mapping(address => AggregatorV2V3Interface) public priceFeeds;
 
     function setPriceFeed(address token, address priceFeed) external {
-        priceFeeds[token] = MockV3Aggregator(priceFeed);
+        priceFeeds[token] = AggregatorV2V3Interface(priceFeed);
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params)
@@ -17,20 +18,35 @@ contract MockUniswapRouter is ISwapRouter {
         override
         returns (uint256 amountOut)
     {
-        MockV3Aggregator priceFeedIn = priceFeeds[params.tokenIn];
-        MockV3Aggregator priceFeedOut = priceFeeds[params.tokenOut];
+        AggregatorV2V3Interface priceFeedIn = priceFeeds[params.tokenIn];
+        AggregatorV2V3Interface priceFeedOut = priceFeeds[params.tokenOut];
 
         require(address(priceFeedIn) != address(0), "No price feed for tokenIn");
         require(address(priceFeedOut) != address(0), "No price feed for tokenOut");
 
         uint256 priceIn = uint256(priceFeedIn.latestAnswer());
         uint256 priceOut = uint256(priceFeedOut.latestAnswer());
+        uint8 decimalsIn = priceFeedIn.decimals();
+        uint8 decimalsOut = priceFeedOut.decimals();
 
         require(priceIn > 0 && priceOut > 0, "Invalid token price");
 
-        // Calculate output amount based on price ratio
-        amountOut = (params.amountIn * priceIn) / priceOut;
+        // Normalize price precision
+        amountOut = (params.amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
 
         require(amountOut >= params.amountOutMinimum, "Slippage exceeded");
+
+        // Ensure sender has enough balance & allowance
+        require(MockERC20(params.tokenIn).balanceOf(msg.sender) >= params.amountIn, "Insufficient Balance");
+        require(
+            MockERC20(params.tokenIn).allowance(msg.sender, address(this)) >= params.amountIn, "Insufficient Allowance"
+        );
+
+        // Ensure contract has enough tokenOut for swap if DEX is connected
+        // require(MockERC20(params.tokenOut).balanceOf(address(this)) >= amountOut, "Insufficient liquidity");
+        MockERC20(params.tokenOut).mint(address(this), amountOut);
+
+        // Transfer tokenOut to sender
+        MockERC20(params.tokenOut).transfer(msg.sender, amountOut);
     }
 }

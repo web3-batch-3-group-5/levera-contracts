@@ -96,7 +96,6 @@ contract LendingPool {
         userSupplyShares[msg.sender] += shares;
 
         // Transfer USDC from sender to contract
-        IERC20(loanToken).approve(address(this), amount);
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
 
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
@@ -132,7 +131,6 @@ contract LendingPool {
 
     function supplyCollateralByPosition(address onBehalf, uint256 amount) public onlyActivePosition(onBehalf) {
         totalCollateral += amount;
-        IERC20(collateralToken).approve(address(this), amount);
         IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
         _indexLendingPool();
     }
@@ -177,7 +175,6 @@ contract LendingPool {
         totalBorrowShares -= shares;
         totalBorrowAssets -= amount;
 
-        IERC20(loanToken).approve(address(this), amount);
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
         _indexLendingPool();
     }
@@ -204,6 +201,7 @@ contract LendingPool {
     // flashloan
     function flashLoan(address token, uint256 amount, bytes calldata data) external {
         if (amount == 0) revert ZeroAmount();
+        require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient Balance");
 
         IERC20(token).transfer(msg.sender, amount);
 
@@ -213,10 +211,12 @@ contract LendingPool {
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
-        return uint256(borrowAmount * 100 / (effectiveCollateral * ltp));
+        uint256 decimals = collateralTokenUsdDataFeed.decimals();
+        return uint256(borrowAmount * 100 * (10 ** decimals) / (effectiveCollateral * ltp));
     }
 
     function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint256) {
+        if (borrowAmount == 0) return 0;
         return uint256((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
     }
 
@@ -224,13 +224,8 @@ contract LendingPool {
         return uint256(borrowAmount / effectiveCollateralPrice);
     }
 
-    function getUtilizationRate() public view returns (uint256) {
-        if (totalBorrowAssets == 0) return 0;
-        return totalSupplyAssets * 100 / totalBorrowAssets;
-    }
-
     function _indexLendingPool() internal {
-        emit EventLib.LendingPoolStats(
+        emit EventLib.LendingPoolStat(
             address(this),
             address(loanToken),
             address(collateralToken),
@@ -238,8 +233,7 @@ contract LendingPool {
             totalSupplyShares,
             totalBorrowAssets,
             totalBorrowShares,
-            totalCollateral,
-            getUtilizationRate()
+            totalCollateral
         );
     }
 }

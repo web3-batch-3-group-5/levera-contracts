@@ -103,7 +103,14 @@ contract LendingPoolTest is Test {
 
         console.log("totalSupplyAssets setelah 1 hari =", lendingPool.totalSupplyAssets());
         console.log("totalBorrowAssets setelah 1 hari =", lendingPool.totalBorrowAssets());
-        console.log("Utilization Rate setelah 1 hari =", lendingPool.getUtilizationRate(), "%");
+
+        if (lendingPool.totalBorrowAssets() > 0) {
+            console.log(
+                "Utilization Rate setelah 1 hari =",
+                lendingPool.totalSupplyAssets() * 100 / lendingPool.totalBorrowAssets(),
+                "%"
+            );
+        }
     }
 
     function test_withdraw() public {

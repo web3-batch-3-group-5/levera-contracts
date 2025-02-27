@@ -32,5 +32,5 @@ interface IPosition {
         external
         returns (bool);
     function openPosition() external;
-    function closePosition() external;
+    function closePosition() external returns (uint256);
 }

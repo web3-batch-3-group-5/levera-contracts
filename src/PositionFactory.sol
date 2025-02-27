@@ -20,7 +20,18 @@ contract PositionFactory {
         positions[msg.sender][positionAddr] = true;
         ILendingPool(_lendingPool).registerPosition(positionAddr);
 
+        // Ensure sender has enough balance
+        require(IERC20(collateralToken).balanceOf(msg.sender) >= _baseCollateral, "Insufficient Balance");
+
+        // Ensure sender has approved enough allowance beforehand
+        require(
+            IERC20(collateralToken).allowance(msg.sender, address(this)) >= _baseCollateral, "Insufficient Allowance"
+        );
+
+        // Transfer collateral from sender to contract
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
+
+        // Approve position contract to use collateral
         IERC20(collateralToken).approve(positionAddr, _baseCollateral);
 
         uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
@@ -33,8 +44,13 @@ contract PositionFactory {
     }
 
     function deletePosition(address _lendingPool, address onBehalf) external returns (address) {
-        IPosition(onBehalf).closePosition();
+        address loanToken = ILendingPool(_lendingPool).loanToken();
+
+        uint256 withdrawAmount = IPosition(onBehalf).closePosition();
         positions[msg.sender][onBehalf] = false;
+
+        IERC20(loanToken).approve(address(this), withdrawAmount);
+        IERC20(loanToken).transfer(msg.sender, withdrawAmount);
         emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
         return onBehalf;
     }
