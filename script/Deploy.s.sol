@@ -31,8 +31,8 @@ contract Deploy is Script {
         // LaUSDC laUSDC = new LaUSDC();
         // LaWBTC laWBTC = new LaWBTC();
         // LaWETH laWETH = new LaWETH();
-        // LaDAI laDAI = new LaDAI();
-        // LaUSDT laUSDT = new LaUSDT();
+        LaDAI laDAI = new LaDAI();
+        LaUSDT laUSDT = new LaUSDT();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
@@ -42,8 +42,8 @@ contract Deploy is Script {
         // console.log("Mock laUSDC deployed at:", address(laUSDC));
         // console.log("Mock laWBTC deployed at:", address(laWBTC));
         // console.log("Mock laWETH deployed at:", address(laWETH));
-        // console.log("Mock laDAI deployed at:", address(laDAI));
-        // console.log("Mock laUSDT deployed at:", address(laUSDT));
+        console.log("Mock laDAI deployed at:", address(laDAI));
+        console.log("Mock laUSDT deployed at:", address(laUSDT));
         console.log("==============================================================");
         vm.stopBroadcast();
     }
