@@ -25,7 +25,7 @@ contract REPLMockDeploy is Script {
     // address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
     // address private constant MOCK_FACTORY_ADDR = 0xc7247F78c46152Ecc3184BA51B8604D6eb807200;
     // Arbitrum Sepolia
-    address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x31e632baEcBe002F198e7F8A439d60502dE43412;
+    address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x5D680e6aF2C03751b9aE474E5751781c594df210;
     address private constant MOCK_FACTORY_ADDR = 0x72BA07E6bc0b4eFC5b2069b816Ed40F64dc67C17;
 
     constructor() {

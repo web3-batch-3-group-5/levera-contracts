@@ -21,11 +21,11 @@ contract Deploy is Script {
         // ISwapRouter uniswapRouter = ISwapRouter(0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8);
 
         // Arbitrum Sepolia
-        address mockUniswapRouter = 0x31e632baEcBe002F198e7F8A439d60502dE43412;
+        // address mockUniswapRouter = 0x5D680e6aF2C03751b9aE474E5751781c594df210;
         // Flame Testnet
         // address mockUniswapRouter = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
-        // MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
-        // LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
+        LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
         PositionFactory positionFactory = new PositionFactory();
         // MockFactory mockFactory = new MockFactory();
         // LaUSDC laUSDC = new LaUSDC();
@@ -36,7 +36,7 @@ contract Deploy is Script {
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
-        // console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
+        console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Position Factory deployed at:", address(positionFactory));
         // console.log("Mock Factory deployed at:", address(mockFactory));
         // console.log("Mock laUSDC deployed at:", address(laUSDC));

@@ -217,7 +217,7 @@ contract IntegrationTest is Test {
         console.log("==============================================================");
         console.log("After Alice close position");
         console.log("mockUSDC balance token", IERC20(mockUSDC).balanceOf(address(this)));
-        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
+        console.log("withdrawAmount =", withdrawAmount);
     }
 
     // function test_borrowByCollateral_InsufficientCollateral() public {
