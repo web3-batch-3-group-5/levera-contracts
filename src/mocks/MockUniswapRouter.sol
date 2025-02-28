@@ -42,6 +42,7 @@ contract MockUniswapRouter is ISwapRouter {
             MockERC20(params.tokenIn).allowance(msg.sender, address(this)) >= params.amountIn, "Insufficient Allowance"
         );
 
+        MockERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         // Ensure contract has enough tokenOut for swap if DEX is connected
         // require(MockERC20(params.tokenOut).balanceOf(address(this)) >= amountOut, "Insufficient liquidity");
         MockERC20(params.tokenOut).mint(address(this), amountOut);

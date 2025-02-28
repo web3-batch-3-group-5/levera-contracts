@@ -32,10 +32,7 @@ contract PositionFactory {
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
         IERC20(collateralToken).approve(positionAddr, _baseCollateral);
 
-        uint256 borrowAmount = newPosition.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
-        uint256 effectiveCollateral = _baseCollateral * _leverage / 100;
-        newPosition.setRiskInfo(effectiveCollateral, borrowAmount);
-        newPosition.openPosition(_baseCollateral, borrowAmount);
+        newPosition.openPosition(_baseCollateral, _leverage);
 
         emit EventLib.PositionCreated(_lendingPool, msg.sender, positionAddr, _baseCollateral, _leverage);
         return positionAddr;

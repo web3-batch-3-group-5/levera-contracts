@@ -7,6 +7,7 @@ import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {IPosition} from "./interfaces/IPosition.sol";
 import {PositionType, ISwapRouter} from "./interfaces/ILendingPool.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
 interface IFlashLoanCallback {
     function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
@@ -160,6 +161,7 @@ contract LendingPool {
         totalBorrowAssets += amount;
         totalBorrowShares += shares;
 
+        IERC20(loanToken).approve(onBehalf, amount);
         _indexLendingPool();
         return shares;
     }
@@ -201,13 +203,22 @@ contract LendingPool {
     // flashloan
     function flashLoan(address token, uint256 amount, bytes calldata data) external {
         if (amount == 0) revert ZeroAmount();
-        require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient Balance");
+        bool isMinted = false;
 
-        IERC20(token).transfer(msg.sender, amount);
+        if (MockERC20(token).balanceOf(address(this)) < amount) {
+            isMinted = true;
+            MockERC20(token).mint(address(this), amount);
+        }
+
+        MockERC20(token).transfer(msg.sender, amount);
 
         IFlashLoanCallback(msg.sender).onFlashLoan(token, amount, data);
 
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        MockERC20(token).transferFrom(msg.sender, address(this), amount);
+
+        if (isMinted) {
+            MockERC20(token).burn(address(this), amount);
+        }
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
@@ -217,11 +228,11 @@ contract LendingPool {
 
     function getHealth(uint256 effectiveCollateralPrice, uint256 borrowAmount) external view returns (uint256) {
         if (borrowAmount == 0) return 0;
-        return uint256((effectiveCollateralPrice * ltp) / (borrowAmount * 100));
+        return uint256((effectiveCollateralPrice * ltp) / (borrowAmount));
     }
 
     function getLTV(uint256 effectiveCollateralPrice, uint256 borrowAmount) external pure returns (uint256) {
-        return uint256(borrowAmount / effectiveCollateralPrice);
+        return uint256(borrowAmount * 100 / effectiveCollateralPrice);
     }
 
     function _indexLendingPool() internal {

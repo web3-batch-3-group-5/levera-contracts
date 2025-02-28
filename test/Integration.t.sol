@@ -101,8 +101,6 @@ contract IntegrationTest is Test {
         private
         returns (address onBehalf)
     {
-        uint256 effectiveCollateral = _baseCollateral * _leverage / 100;
-
         vm.startPrank(user);
         IERC20(mockWBTC).approve(address(this), _baseCollateral);
         IERC20(mockWBTC).transfer(address(this), _baseCollateral);
@@ -117,10 +115,7 @@ contract IntegrationTest is Test {
 
         IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
 
-        uint256 borrowAmount = position.convertCollateralPrice(_baseCollateral * (_leverage - 100) / 100);
-        position.setRiskInfo(effectiveCollateral, borrowAmount);
-
-        position.openPosition(_baseCollateral, borrowAmount);
+        position.openPosition(_baseCollateral, _leverage);
 
         // Replace openPosition
         // position.addCollateral(_baseCollateral);
@@ -128,8 +123,17 @@ contract IntegrationTest is Test {
         // position.borrow(borrowAmount);
         // IERC20(mockWBTC).approve(positionAddr, borrowCollateral);
         // position.addCollateral(borrowCollateral);
-
-        console.log("Estimated Borrow Collateral Price", position.convertBorrowSharesToAmount(position.borrowShares()));
+        console.log("======================== Position ===========================");
+        console.log("Before Alice create position");
+        console.log("Base Collateral", position.baseCollateral());
+        console.log("Effective Collateral", position.effectiveCollateral());
+        console.log("Leverage", position.leverage());
+        console.log("Liquidation Price", position.liquidationPrice());
+        console.log("Health", position.health());
+        console.log("LTV", position.ltv());
+        console.log("Borrow Shares", position.borrowShares());
+        console.log("Estimated Borrow Amount", position.convertBorrowSharesToAmount(position.borrowShares()));
+        console.log("==============================================================");
 
         return positionAddr;
     }
@@ -195,53 +199,26 @@ contract IntegrationTest is Test {
         console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
     }
 
-    // function test_borrowByPosition() public {
-    //     uint256 supplyCollateralAmount = 1e6; // in wbtc
-    //     uint256 borrowAmount = 10e6; // in usdc
+    function test_closePosition() public {
+        uint256 baseCollateral = 1e12;
+        uint8 leverage = 200;
 
-    //     // Bob supply to lending pool
-    //     uint256 bobDeposit = 1000e6;
-    //     vm.startPrank(bob);
-    //     IERC20(mockUSDC).approve(address(lendingPool), bobDeposit);
+        // Alice Create Position
+        address onBehalf = createPosition(alice, baseCollateral, leverage);
 
-    //     lendingPool.supply(bobDeposit);
-    //     vm.stopPrank();
+        assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
+        console.log("==============================================================");
+        console.log("After Alice create position");
+        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
 
-    //     // Alice create position
-    //     vm.startPrank(alice);
-    //     address onBehalf = address(lendingPool.createPosition());
-    //     IERC20(mockWBTC).approve(address(lendingPool), supplyCollateralAmount);
+        uint256 withdrawAmount = IPosition(onBehalf).closePosition();
+        positions[alice][onBehalf] = false;
 
-    //     // Check Alice balance Before
-    //     uint256 aliceBalanceBefore = IERC20(mockUSDC).balanceOf(alice);
-    //     assertEq(aliceBalanceBefore, 100_000e6, "Alice Balance Initial");
-
-    //     // Alice supply collateral
-    //     lendingPool.supplyCollateralByPosition(onBehalf, supplyCollateralAmount);
-
-    //     // Get initial position data
-    //     (uint256 initialCollateral, uint256 initialBorrowed,,) = lendingPool.getPosition(onBehalf);
-
-    //     // Ensure collateral was supplied correctly
-    //     assertEq(initialCollateral, supplyCollateralAmount, "Collateral amount should be updated");
-    //     assertEq(initialBorrowed, 0, "Initial borrowed amount should be zero");
-
-    //     // Alice attempts to borrow
-    //     lendingPool.borrowByPosition(onBehalf, borrowAmount);
-
-    //     // Get updated position data
-    //     (uint256 finalCollateral, uint256 finalBorrowed,,) = lendingPool.getPosition(onBehalf);
-
-    //     // Verify borrow updates
-    //     assertEq(finalCollateral, supplyCollateralAmount, "Collateral should remain the same");
-    //     assertEq(finalBorrowed, borrowAmount, "Borrowed amount should be updated");
-
-    //     // Check token balance
-    //     uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
-    //     assertEq(aliceBalanceAfter, aliceBalanceBefore += borrowAmount, "Alice should receive the borrowed tokens");
-
-    //     console.log("Alice successfully borrowed", aliceBalanceBefore += borrowAmount);
-    // }
+        console.log("==============================================================");
+        console.log("After Alice close position");
+        console.log("mockUSDC balance token", IERC20(mockUSDC).balanceOf(address(this)));
+        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
+    }
 
     // function test_borrowByCollateral_InsufficientCollateral() public {
     //     uint256 supplyCollateralAmount = 1e4;

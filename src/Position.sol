@@ -136,22 +136,26 @@ contract Position {
             : (amount * lendingPool.totalBorrowShares()) / lendingPool.totalBorrowAssets();
     }
 
-    function setRiskInfo(uint256 _effectiveCollateral, uint256 _borrowAmount) public {
-        uint256 effectiveCollateralPrice = convertCollateralPrice(_effectiveCollateral);
+    function setRiskInfo() public {
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
+        uint256 effectiveCollateralPrice = convertCollateralPrice(effectiveCollateral);
 
-        liquidationPrice = lendingPool.getLiquidationPrice(_effectiveCollateral, _borrowAmount);
-        health = lendingPool.getHealth(effectiveCollateralPrice, _borrowAmount);
-        ltv = lendingPool.getLTV(effectiveCollateralPrice, _borrowAmount);
+        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
+        health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
+        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
     }
 
     function addCollateral(uint256 amount) public {
+        IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), amount);
+        baseCollateral += amount;
         _supplyCollateral(amount);
+
+        leverage = effectiveCollateral * 100 / baseCollateral;
+        setRiskInfo();
         _emitUpdatePosition();
     }
 
     function _supplyCollateral(uint256 amount) internal {
-        IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), amount);
-        baseCollateral += amount;
         effectiveCollateral += amount;
 
         IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amount);
@@ -167,14 +171,9 @@ contract Position {
         effectiveCollateral -= amount;
         _checkHealth();
 
-        uint256 effectiveCollateralPrice = convertCollateralPrice(effectiveCollateral);
-        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
-
-        liquidationPrice = lendingPool.getLiquidationPrice(effectiveCollateral, borrowAmount);
-        health = lendingPool.getHealth(effectiveCollateralPrice, borrowAmount);
-        ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
-
         lendingPool.withdrawCollateralByPosition(address(this), amount);
+        leverage = effectiveCollateral * 100 / baseCollateral;
+        setRiskInfo();
 
         _emitUpdatePosition();
         _emitWithdrawCollateral();
@@ -185,29 +184,35 @@ contract Position {
     function _borrow(uint256 amount) internal {
         uint256 shares = lendingPool.borrowByPosition(address(this), amount);
         borrowShares += shares;
+
+        IERC20(lendingPool.loanToken()).transferFrom(address(lendingPool), address(this), amount);
         _checkHealth();
         _emitBorrow();
     }
 
     function borrow(uint256 amount) external {
         _borrow(amount);
+        setRiskInfo();
     }
 
-    function openPosition(uint256 amount, uint256 debt) public {
-        _supplyCollateral(amount);
+    function openPosition(uint256 _baseCollateral, uint256 _leverage) public {
+        baseCollateral = _baseCollateral;
+        IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), _baseCollateral);
 
         flMode = 1;
 
-        ILendingPool(lendingPool).flashLoan(address(ILendingPool(lendingPool).loanToken()), debt, "");
-        _borrow(debt);
+        uint256 borrowCollateral = _baseCollateral * (_leverage - 100) / 100;
+        ILendingPool(lendingPool).flashLoan(lendingPool.collateralToken(), borrowCollateral, "");
 
         flMode = 0;
 
+        leverage = _leverage;
+        setRiskInfo();
         _emitUpdatePosition();
     }
 
     function onFlashLoan(address token, uint256 amount, bytes calldata) external {
-        if (token != lendingPool.loanToken()) revert InvalidToken();
+        if (token != lendingPool.loanToken() && token != lendingPool.collateralToken()) revert InvalidToken();
 
         if (flMode == 1) _flAddLeverage(token, amount);
 
@@ -216,17 +221,23 @@ contract Position {
     }
 
     function _flAddLeverage(address token, uint256 amount) internal {
-        uint256 amountOut = _swap(token, lendingPool.collateralToken(), amount);
-        effectiveCollateral += amountOut;
+        uint256 totalCollateral = IERC20(token).balanceOf(address(this));
+        _supplyCollateral(totalCollateral);
+        effectiveCollateral = totalCollateral;
+
+        uint256 borrowAmount = convertCollateralPrice(amount);
+        _borrow(borrowAmount);
+
+        _swap(lendingPool.loanToken(), token, borrowAmount);
     }
 
-    function _swap(address loanToken, address collateralToken, uint256 amount) internal returns (uint256) {
-        IERC20(loanToken).approve(address(router), amount);
+    function _swap(address tokenIn, address tokenOut, uint256 amount) internal returns (uint256) {
+        IERC20(tokenIn).approve(address(router), amount);
 
         ISwapRouter(router).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: loanToken,
-                tokenOut: collateralToken,
+                tokenIn: tokenIn,
+                tokenOut: tokenOut,
                 fee: 500,
                 recipient: address(this),
                 deadline: block.timestamp,
@@ -236,13 +247,7 @@ contract Position {
             })
         );
 
-        uint256 amountOut = IERC20(lendingPool.collateralToken()).balanceOf(address(this));
-
-        IERC20(lendingPool.collateralToken()).approve(address(lendingPool), amountOut);
-        lendingPool.supplyCollateralByPosition(address(this), amountOut);
-
-        _emitSupplyCollateral();
-
+        uint256 amountOut = IERC20(tokenOut).balanceOf(address(this));
         return amountOut;
     }
 
@@ -266,19 +271,18 @@ contract Position {
         if (newLeverage > oldLeverage) {
             // increase
             uint256 borrowCollateral = newEffectiveCollateral - effectiveCollateral;
-            uint256 additionalBorrow = convertCollateralPrice(borrowCollateral);
             flMode = 1;
 
-            ILendingPool(lendingPool).flashLoan(address(ILendingPool(lendingPool).loanToken()), additionalBorrow, "");
-            _borrow(additionalBorrow);
+            ILendingPool(lendingPool).flashLoan(lendingPool.collateralToken(), borrowCollateral, "");
 
             flMode = 0;
         } else if (newLeverage < oldLeverage) {
             // decrease
             uint256 repaidCollateral = effectiveCollateral - newEffectiveCollateral;
-            uint256 amountOut = _swap(lendingPool.loanToken(), lendingPool.collateralToken(), repaidCollateral);
+            uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), repaidCollateral);
 
             uint256 repaidShares = convertBorrowAmountToShares(amountOut);
+            IERC20(lendingPool.loanToken()).approve(address(lendingPool), amountOut);
             lendingPool.repayByPosition(address(this), repaidShares);
             borrowShares -= repaidShares;
             _emitRepay();
@@ -286,8 +290,7 @@ contract Position {
 
         effectiveCollateral = newEffectiveCollateral;
         leverage = newLeverage;
-        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
-        setRiskInfo(effectiveCollateral, borrowAmount);
+        setRiskInfo();
         _emitUpdatePosition();
     }
 
