@@ -8,7 +8,6 @@ import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 
 contract Position {
-    error InvalidToken();
     error InsufficientCollateral();
     error InsufficientMinimumLeverage();
     error LeverageTooHigh();
@@ -58,62 +57,22 @@ contract Position {
 
     function _emitSupplyCollateral() internal {
         emit EventLib.SupplyCollateral(
-            address(lendingPool),
-            creator,
-            address(this),
-            baseCollateral,
-            effectiveCollateral,
-            borrowShares,
-            leverage,
-            liquidationPrice,
-            health,
-            ltv
+            address(lendingPool), creator, address(this), effectiveCollateral, borrowShares, leverage
         );
     }
 
     function _emitWithdrawCollateral() internal {
         emit EventLib.WithdrawCollateral(
-            address(lendingPool),
-            creator,
-            address(this),
-            baseCollateral,
-            effectiveCollateral,
-            borrowShares,
-            leverage,
-            liquidationPrice,
-            health,
-            ltv
+            address(lendingPool), creator, address(this), effectiveCollateral, borrowShares, leverage
         );
     }
 
     function _emitBorrow() internal {
-        emit EventLib.Borrow(
-            address(lendingPool),
-            creator,
-            address(this),
-            baseCollateral,
-            effectiveCollateral,
-            borrowShares,
-            leverage,
-            liquidationPrice,
-            health,
-            ltv
-        );
+        emit EventLib.Borrow(address(lendingPool), creator, address(this), effectiveCollateral, borrowShares, leverage);
     }
 
     function _emitRepay() internal {
-        emit EventLib.Repay(
-            address(lendingPool),
-            creator,
-            address(this),
-            baseCollateral,
-            effectiveCollateral,
-            borrowShares,
-            leverage,
-            liquidationPrice,
-            health,
-            ltv
-        );
+        emit EventLib.Repay(address(lendingPool), creator, address(this), effectiveCollateral, borrowShares, leverage);
     }
 
     function convertCollateralPrice(uint256 collateralAmount) public view returns (uint256 amount) {
@@ -196,13 +155,14 @@ contract Position {
     }
 
     function openPosition(uint256 _baseCollateral, uint256 _leverage) public {
+        address collateralToken = lendingPool.collateralToken();
         baseCollateral = _baseCollateral;
-        IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), _baseCollateral);
+        IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
 
         flMode = 1;
 
         uint256 borrowCollateral = _baseCollateral * (_leverage - 100) / 100;
-        ILendingPool(lendingPool).flashLoan(lendingPool.collateralToken(), borrowCollateral, "");
+        ILendingPool(lendingPool).flashLoan(collateralToken, borrowCollateral, "");
 
         flMode = 0;
 
@@ -212,8 +172,6 @@ contract Position {
     }
 
     function onFlashLoan(address token, uint256 amount, bytes calldata) external {
-        if (token != lendingPool.loanToken() && token != lendingPool.collateralToken()) revert InvalidToken();
-
         if (flMode == 1) _flAddLeverage(token, amount);
 
         // repay flashloan

@@ -21,22 +21,11 @@ contract REPLMockDeploy is Script {
     }
 
     MockConfig[] private mockTokens;
-    // Flame Testnet
-    // address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
-    // address private constant MOCK_FACTORY_ADDR = 0xc7247F78c46152Ecc3184BA51B8604D6eb807200;
     // Arbitrum Sepolia
     address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x5D680e6aF2C03751b9aE474E5751781c594df210;
     address private constant MOCK_FACTORY_ADDR = 0x72BA07E6bc0b4eFC5b2069b816Ed40F64dc67C17;
 
     constructor() {
-        // Flame Testnet
-        // mockTokens.push(MockConfig(0xEfd02292Cb87CCeeE1267141deef959cF739F9A9, "Mock USD Coin", "laUSDC", 18, 1e18));
-        // mockTokens.push(
-        //     MockConfig(0x84f529597e077130f7133fa58a675FA32ccc9577, "Mock Wrapped Bitcoin", "laWBTC", 18, 100_000e18)
-        // );
-        // mockTokens.push(
-        //     MockConfig(0xc004D73765391768C584001fdF2f491783F84EC7, "Mock Wrapped Ethereum", "laWETH", 18, 2_500e18)
-        // );
         // Arbitrum Sepolia
         mockTokens.push(MockConfig(0xE6DFbEE9D497f1b851915166E26A273cB03F27E1, "Mock USD Coin", "laUSDC", 18, 1e18));
         mockTokens.push(
@@ -80,7 +69,7 @@ contract REPLMockDeploy is Script {
         vm.stopBroadcast();
     }
 
-    function mintFlameMockToken() public {
+    function mintMockToken() public {
         address receiver = 0x2808Dc7E5eFC9409CdD6166E01ce44Ae9a84bb32;
         for (uint256 i = 0; i < mockTokens.length; i++) {
             address token = mockTokens[i].contractAddr;

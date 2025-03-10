@@ -25,9 +25,6 @@ contract REPLDeploy is Script {
 
     LendingPoolConfig[] private lendingPoolSeeds;
 
-    // Flame Testnet
-    // address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x82069D54DF7fB4d9D9d8B35e2BecA6FE6aBAdF87;
-    // address private constant POSITION_FACTORY_ADDR = 0x991de844C6A42AC2D4Bb6B97cE4fCf28296b8B84;
     // Arbitrum Sepolia
     address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x5D680e6aF2C03751b9aE474E5751781c594df210;
     address private constant POSITION_FACTORY_ADDR = 0x21F5faEAA402e5950Aa8d6A3e6760699A5e1A0F6;

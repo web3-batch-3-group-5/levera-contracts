@@ -74,6 +74,7 @@ contract IntegrationTest is Test {
         console.log("Position Type (0 = LONG, 1 = SHORT):", uint8(positionType));
         console.log("==============================================================");
 
+        mockWBTC.mint(address(lendingPool), 1_000_000e18);
         mockUSDC.mint(address(this), 1_000_000e18);
         supplyLiquidity(1500e18);
 

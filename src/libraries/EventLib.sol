@@ -40,7 +40,7 @@ library EventLib {
         address indexed caller,
         address onBehalf,
         uint256 baseCollateral,
-        uint256 effectiveCollateral,
+        uint256 totalCollateral,
         uint256 borrowShares,
         uint256 leverage,
         uint256 liquidationPrice,
@@ -52,52 +52,36 @@ library EventLib {
         address indexed lendingPool,
         address indexed caller,
         address onBehalf,
-        uint256 baseCollateral,
-        uint256 effectiveCollateral,
+        uint256 totalCollateral,
         uint256 borrowShares,
-        uint256 leverage,
-        uint256 liquidationPrice,
-        uint256 health,
-        uint256 ltv
+        uint256 leverage
     );
 
     event WithdrawCollateral(
         address indexed lendingPool,
         address indexed caller,
         address onBehalf,
-        uint256 baseCollateral,
-        uint256 effectiveCollateral,
+        uint256 totalCollateral,
         uint256 borrowShares,
-        uint256 leverage,
-        uint256 liquidationPrice,
-        uint256 health,
-        uint256 ltv
+        uint256 leverage
     );
 
     event Borrow(
         address indexed lendingPool,
         address indexed caller,
         address onBehalf,
-        uint256 baseCollateral,
-        uint256 effectiveCollateral,
+        uint256 totalCollateral,
         uint256 borrowShares,
-        uint256 leverage,
-        uint256 liquidationPrice,
-        uint256 health,
-        uint256 ltv
+        uint256 leverage
     );
 
     event Repay(
         address indexed lendingPool,
         address indexed caller,
         address onBehalf,
-        uint256 baseCollateral,
-        uint256 effectiveCollateral,
+        uint256 totalCollateral,
         uint256 borrowShares,
-        uint256 leverage,
-        uint256 liquidationPrice,
-        uint256 health,
-        uint256 ltv
+        uint256 leverage
     );
 
     event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);

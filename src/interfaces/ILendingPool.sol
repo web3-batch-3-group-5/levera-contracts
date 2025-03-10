@@ -67,6 +67,10 @@ interface ISwapRouter {
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
 }
 
+interface IFlashLoanCallback {
+    function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
+}
+
 enum PositionType {
     LONG,
     SHORT

@@ -6,14 +6,11 @@ import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfac
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {IPosition} from "./interfaces/IPosition.sol";
-import {PositionType, ISwapRouter} from "./interfaces/ILendingPool.sol";
+import {PositionType, ISwapRouter, IFlashLoanCallback} from "./interfaces/ILendingPool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
-interface IFlashLoanCallback {
-    function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
-}
-
 contract LendingPool {
+    error InvalidToken();
     error InsufficientCollateral();
     error InsufficientLiquidity();
     error InsufficientShares();
@@ -202,23 +199,15 @@ contract LendingPool {
 
     // flashloan
     function flashLoan(address token, uint256 amount, bytes calldata data) external {
+        if (token != address(loanToken) && token != address(collateralToken)) revert InvalidToken();
         if (amount == 0) revert ZeroAmount();
-        bool isMinted = false;
-
-        if (MockERC20(token).balanceOf(address(this)) < amount) {
-            isMinted = true;
-            MockERC20(token).mint(address(this), amount);
-        }
+        if (MockERC20(token).balanceOf(address(this)) < amount) revert InsufficientLiquidity();
 
         MockERC20(token).transfer(msg.sender, amount);
 
         IFlashLoanCallback(msg.sender).onFlashLoan(token, amount, data);
 
         MockERC20(token).transferFrom(msg.sender, address(this), amount);
-
-        if (isMinted) {
-            MockERC20(token).burn(address(this), amount);
-        }
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {
