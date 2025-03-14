@@ -21,23 +21,23 @@ contract Deploy is Script {
         MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
         PositionFactory positionFactory = new PositionFactory();
-        // MockFactory mockFactory = new MockFactory();
-        // MockERC20 laUSDC = new MockERC20("Mock USD Coin", "laUSDC", 6);
-        // MockERC20 laWBTC = new MockERC20("Mock Wrapped Bitcoin", "laWBTC", 8);
-        // MockERC20 laWETH = new MockERC20("Mock Wrapped Ethereum", "laWETH", 18);
-        // MockERC20 laDAI = new MockERC20("Mock DAI", "laDAI", 18);
-        // MockERC20 laUSDT = new MockERC20("Mock USD Token", "laUSDT", 6);
+        MockFactory mockFactory = new MockFactory();
+        MockERC20 laDAI = new MockERC20("Mock DAI", "laDAI", 18);
+        MockERC20 laUSDC = new MockERC20("Mock USD Coin", "laUSDC", 6);
+        MockERC20 laUSDT = new MockERC20("Mock USD Token", "laUSDT", 6);
+        MockERC20 laWBTC = new MockERC20("Mock Wrapped Bitcoin", "laWBTC", 8);
+        MockERC20 laWETH = new MockERC20("Mock Wrapped Ethereum", "laWETH", 18);
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", address(mockUniswapRouter));
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Position Factory deployed at:", address(positionFactory));
-        // console.log("Mock Factory deployed at:", address(mockFactory));
-        // console.log("Mock laUSDC deployed at:", address(laUSDC));
-        // console.log("Mock laWBTC deployed at:", address(laWBTC));
-        // console.log("Mock laWETH deployed at:", address(laWETH));
-        // console.log("Mock laDAI deployed at:", address(laDAI));
-        // console.log("Mock laUSDT deployed at:", address(laUSDT));
+        console.log("Mock Factory deployed at:", address(mockFactory));
+        console.log("Mock laDAI deployed at:", address(laDAI));
+        console.log("Mock laUSDC deployed at:", address(laUSDC));
+        console.log("Mock laUSDT deployed at:", address(laUSDT));
+        console.log("Mock laWBTC deployed at:", address(laWBTC));
+        console.log("Mock laWETH deployed at:", address(laWETH));
         console.log("==============================================================");
         vm.stopBroadcast();
     }

@@ -30,6 +30,17 @@ contract REPLDeploy is Script {
     address private constant POSITION_FACTORY_ADDR = 0x21F5faEAA402e5950Aa8d6A3e6760699A5e1A0F6;
     address private constant LP_FACTORY_ADDR = 0x9C418f5400135989e7fc44221e9B4F90577610D7;
 
+    address private constant LA_DAI = 0x51a439096Ee300eC7a07FFd7Fa55a1f8723948c5;
+    address private constant LA_DAI_PRICE_FEED = 0x1a4EaA946b1105f16DB9b3a9b7e119fc15e70E4c;
+    address private constant LA_USDC = 0xE6DFbEE9D497f1b851915166E26A273cB03F27E1;
+    address private constant LA_USDC_PRICE_FEED = 0x6A285E46Fce971CC762653EE9b8F81207A45214E;
+    address private constant LA_USDT = 0xc0233309cD5e1fa340E2b681Dba3D4240aB6F49d;
+    address private constant LA_USDT_PRICE_FEED = 0xB6D68C67BCA08023d2C51C9B487515A20Cc2bc2E;
+    address private constant LA_WBTC = 0x472A3ec37E662b295fd25E3b5d805117345a89D1;
+    address private constant LA_WBTC_PRICE_FEED = 0x32423580b2762696Bf9F6e9149884d54e8150a19;
+    address private constant LA_WETH = 0x06322002130c5Fd3a5715F28f46EC28fa99584bE;
+    address private constant LA_WETH_PRICE_FEED = 0x373472E12Da7e185576D5A07d52BcAD25690a08a;
+
     function init() public {
         uint256 supplyAmount = 10_000e18;
         uint256 baseCollateral = 1e12;
@@ -41,13 +52,7 @@ contract REPLDeploy is Script {
         // LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LP_FACTORY_ADDR);
         LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(MOCK_UNISWAP_ROUTER_ADDR);
         address lendingPoolAddr = lendingPoolFactory.createLendingPool(
-            0xE6DFbEE9D497f1b851915166E26A273cB03F27E1,
-            0x472A3ec37E662b295fd25E3b5d805117345a89D1,
-            0x6A285E46Fce971CC762653EE9b8F81207A45214E,
-            0x32423580b2762696Bf9F6e9149884d54e8150a19,
-            80,
-            5,
-            PositionType.LONG
+            LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 80, 5, PositionType.LONG
         );
         address loanToken = ILendingPool(lendingPoolAddr).loanToken();
         address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
@@ -80,54 +85,12 @@ contract REPLDeploy is Script {
         vm.startBroadcast(privateKey);
         LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LP_FACTORY_ADDR);
 
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0xE6DFbEE9D497f1b851915166E26A273cB03F27E1, // USDC Token
-                0x472A3ec37E662b295fd25E3b5d805117345a89D1, // WBTC Token
-                0x6A285E46Fce971CC762653EE9b8F81207A45214E, // USDC Aggregator
-                0x32423580b2762696Bf9F6e9149884d54e8150a19 // WBTC Aggregator
-            )
-        );
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0xc0233309cD5e1fa340E2b681Dba3D4240aB6F49d, // USDT
-                0x472A3ec37E662b295fd25E3b5d805117345a89D1, // WBTC
-                0xB6D68C67BCA08023d2C51C9B487515A20Cc2bc2E, // USDT Aggregator
-                0x32423580b2762696Bf9F6e9149884d54e8150a19 // WBTC Aggregator
-            )
-        );
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0xE6DFbEE9D497f1b851915166E26A273cB03F27E1, // USDC
-                0x06322002130c5Fd3a5715F28f46EC28fa99584bE, // WETH
-                0x6A285E46Fce971CC762653EE9b8F81207A45214E, // USDC Aggregator
-                0x373472E12Da7e185576D5A07d52BcAD25690a08a // WETH Aggregator
-            )
-        );
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0xc0233309cD5e1fa340E2b681Dba3D4240aB6F49d, // USDT
-                0x06322002130c5Fd3a5715F28f46EC28fa99584bE, // WETH
-                0xB6D68C67BCA08023d2C51C9B487515A20Cc2bc2E, // USDT Aggregator
-                0x373472E12Da7e185576D5A07d52BcAD25690a08a // WETH Aggregator
-            )
-        );
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0x51a439096Ee300eC7a07FFd7Fa55a1f8723948c5, // DAI
-                0x472A3ec37E662b295fd25E3b5d805117345a89D1, // WBTC
-                0x1a4EaA946b1105f16DB9b3a9b7e119fc15e70E4c, // DAI Aggregator
-                0x32423580b2762696Bf9F6e9149884d54e8150a19 // WBTC Aggregator
-            )
-        );
-        lendingPoolSeeds.push(
-            LendingPoolConfig(
-                0x51a439096Ee300eC7a07FFd7Fa55a1f8723948c5, // DAI
-                0x06322002130c5Fd3a5715F28f46EC28fa99584bE, // WETH
-                0x1a4EaA946b1105f16DB9b3a9b7e119fc15e70E4c, // DAI Aggregator
-                0x373472E12Da7e185576D5A07d52BcAD25690a08a // WETH Aggregator
-            )
-        );
+        lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED));
+        lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED));
+        lendingPoolSeeds.push(LendingPoolConfig(LA_USDT, LA_WBTC, LA_USDT_PRICE_FEED, LA_WBTC_PRICE_FEED));
+        lendingPoolSeeds.push(LendingPoolConfig(LA_USDT, LA_WETH, LA_USDT_PRICE_FEED, LA_WETH_PRICE_FEED));
+        lendingPoolSeeds.push(LendingPoolConfig(LA_DAI, LA_WBTC, LA_DAI_PRICE_FEED, LA_WBTC_PRICE_FEED));
+        lendingPoolSeeds.push(LendingPoolConfig(LA_DAI, LA_WETH, LA_DAI_PRICE_FEED, LA_WETH_PRICE_FEED));
 
         for (uint256 i = 0; i < lendingPoolSeeds.length; i++) {
             LendingPoolConfig memory lendingPool = lendingPoolSeeds[i];

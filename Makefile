@@ -12,7 +12,9 @@ build:
 
 # Define a target to deploy using the specified network
 deploy: build
-	$(call forge_script,)
+	@cmd="$(call forge_script,)"; \
+	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
+	eval $$cmd
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build
