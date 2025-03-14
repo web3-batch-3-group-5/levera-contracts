@@ -54,21 +54,11 @@ contract REPLDeploy is Script {
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Lending Pool deployed at:", lendingPoolAddr);
 
-        console.log("Loan Token Balance before mint =", MockERC20(loanToken).balanceOf(address(this)));
-        console.log("Collateral Token Balance before mint =", MockERC20(collateralToken).balanceOf(address(this)));
         MockERC20(loanToken).mint(address(this), supplyAmount);
         MockERC20(collateralToken).mint(address(this), baseCollateral);
-        console.log("Loan Token Balance after mint =", MockERC20(loanToken).balanceOf(address(this)));
-        console.log("Collateral Token Balance after mint =", MockERC20(collateralToken).balanceOf(address(this)));
 
         MockERC20(loanToken).approve(lendingPoolAddr, supplyAmount);
         ILendingPool(lendingPoolAddr).supply(supplyAmount);
-
-        console.log("====================== After Supply =========================");
-        console.log("totalCollateral =", ILendingPool(lendingPoolAddr).totalCollateral());
-        console.log("totalSupplyAssets =", ILendingPool(lendingPoolAddr).totalSupplyAssets());
-        console.log("totalBorrowAssets =", ILendingPool(lendingPoolAddr).totalBorrowAssets());
-        console.log("==============================================================");
 
         // PositionFactory positionFactory = PositionFactory(POSITION_FACTORY_ADDR);
         PositionFactory positionFactory = new PositionFactory();
@@ -78,24 +68,8 @@ contract REPLDeploy is Script {
 
         address onBehalf = positionFactory.createPosition(lendingPoolAddr, baseCollateral, leverage);
         console.log("Position deployed at:", onBehalf);
-        console.log("====================== After Create Position =========================");
-        console.log("totalCollateral =", ILendingPool(lendingPoolAddr).totalCollateral());
-        console.log("totalSupplyAssets =", ILendingPool(lendingPoolAddr).totalSupplyAssets());
-        console.log("totalBorrowAssets =", ILendingPool(lendingPoolAddr).totalBorrowAssets());
-        console.log("baseCollateral =", IPosition(onBehalf).baseCollateral());
-        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
-        console.log("borrowShares =", IPosition(onBehalf).borrowShares());
-        console.log("==============================================================");
 
         positionFactory.deletePosition(lendingPoolAddr, onBehalf);
-        console.log("====================== After Delete Position =========================");
-        console.log("totalCollateral =", ILendingPool(lendingPoolAddr).totalCollateral());
-        console.log("totalSupplyAssets =", ILendingPool(lendingPoolAddr).totalSupplyAssets());
-        console.log("totalBorrowAssets =", ILendingPool(lendingPoolAddr).totalBorrowAssets());
-        console.log("baseCollateral =", IPosition(onBehalf).baseCollateral());
-        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
-        console.log("borrowShares =", IPosition(onBehalf).borrowShares());
-        console.log("==============================================================");
         vm.stopBroadcast();
     }
 
