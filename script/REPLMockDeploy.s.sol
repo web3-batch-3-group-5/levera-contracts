@@ -20,19 +20,43 @@ contract REPLMockDeploy is Script {
         int256 price;
     }
 
+    address MOCK_UNISWAP_ROUTER;
+    address MOCK_FACTORY;
+    address LA_DAI;
+    address LA_USDC;
+    address LA_USDT;
+    address LA_WBTC;
+    address LA_WETH;
+
     MockConfig[] private mockTokens;
-    // Arbitrum Sepolia
-    address private constant MOCK_UNISWAP_ROUTER_ADDR = 0x5D680e6aF2C03751b9aE474E5751781c594df210;
-    address private constant MOCK_FACTORY_ADDR = 0x72BA07E6bc0b4eFC5b2069b816Ed40F64dc67C17;
 
-    address private constant LA_DAI = 0x51a439096Ee300eC7a07FFd7Fa55a1f8723948c5;
-    address private constant LA_USDC = 0xE6DFbEE9D497f1b851915166E26A273cB03F27E1;
-    address private constant LA_USDT = 0xc0233309cD5e1fa340E2b681Dba3D4240aB6F49d;
-    address private constant LA_WBTC = 0x472A3ec37E662b295fd25E3b5d805117345a89D1;
-    address private constant LA_WETH = 0x06322002130c5Fd3a5715F28f46EC28fa99584bE;
+    constructor() {}
 
-    constructor() {
-        // Arbitrum Sepolia
+    function setup() public {
+        string memory json = vm.readFile("config.json");
+        string memory chain = "109695";
+        bytes memory raw = vm.parseJson(json, string(abi.encodePacked(".", chain)));
+
+        (MOCK_UNISWAP_ROUTER, MOCK_FACTORY,,, LA_DAI,, LA_USDC,, LA_USDT,, LA_WBTC,, LA_WETH,) = abi.decode(
+            raw,
+            (
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address,
+                address
+            )
+        );
+
         mockTokens.push(MockConfig(LA_DAI, "Mock DAI", "laDAI", 18, 1e18));
         mockTokens.push(MockConfig(LA_USDC, "Mock USD Coin", "laUSDC", 6, 1e6));
         mockTokens.push(MockConfig(LA_USDT, "Mock USD Token", "laUSDT", 6, 1e6));
@@ -41,31 +65,27 @@ contract REPLMockDeploy is Script {
     }
 
     function setupFlameMockUniswapRouter() public {
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(privateKey);
+        bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
+        vm.startBroadcast(uint256(privateKey));
 
-        MockFactory mockFactory = MockFactory(MOCK_FACTORY_ADDR);
-        MockUniswapRouter mockUniswapRouter = MockUniswapRouter(MOCK_UNISWAP_ROUTER_ADDR);
+        MockFactory mockFactory = MockFactory(MOCK_FACTORY);
+        MockUniswapRouter mockUniswapRouter = MockUniswapRouter(MOCK_UNISWAP_ROUTER);
 
         console.log("================ Configure Mock in Router =================");
-        console.log("Mock Uniswap Router deployed at:", MOCK_UNISWAP_ROUTER_ADDR);
+        console.log("Mock Uniswap Router deployed at:", MOCK_UNISWAP_ROUTER);
         for (uint256 i = 0; i < mockTokens.length; i++) {
             MockConfig memory token = mockTokens[i];
-            // mockFactory.storeMockToken(token.name, token.symbol, token.contractAddr);
+            mockFactory.storeMockToken(token.name, token.symbol, token.contractAddr);
 
             // // Discard if exist
             // mockFactory.discardMockAggregator(token.name, token.symbol);
 
-            // address priceFeed = mockFactory.createMockAggregator(token.name, token.symbol, token.decimals, token.price);
-            bytes32 id = keccak256(abi.encode(token.name, token.symbol));
-            address priceFeed = mockFactory.aggregators(id);
+            address priceFeed = mockFactory.createMockAggregator(token.name, token.symbol, token.decimals, token.price);
+            // bytes32 id = keccak256(abi.encode(token.name, token.symbol));
+            // address priceFeed = mockFactory.aggregators(id);
 
             mockUniswapRouter.setPriceFeed(token.contractAddr, priceFeed);
-            console.log(
-                string(
-                    abi.encodePacked("[", token.symbol, "] Token: ", token.contractAddr, ", Aggregator: ", priceFeed)
-                )
-            );
+            console.log(string(abi.encodePacked("[", token.symbol, "] Aggregator: ")), priceFeed);
         }
         console.log("===========================================================");
         vm.stopBroadcast();
