@@ -97,7 +97,7 @@ contract LendingPool {
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
 
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
-        emit EventLib.Supply(address(this), msg.sender, userSupplyShares[msg.sender]);
+        emit EventLib.Supply(address(this), msg.sender, shares);
     }
 
     function withdraw(uint256 shares) public {
@@ -116,7 +116,7 @@ contract LendingPool {
         IERC20(loanToken).transfer(msg.sender, amount);
 
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
-        emit EventLib.Withdraw(address(this), msg.sender, userSupplyShares[msg.sender]);
+        emit EventLib.Withdraw(address(this), msg.sender, shares);
     }
 
     function registerPosition(address onBehalf) public {
@@ -226,14 +226,7 @@ contract LendingPool {
 
     function _indexLendingPool() internal {
         emit EventLib.LendingPoolStat(
-            address(this),
-            address(loanToken),
-            address(collateralToken),
-            totalSupplyAssets,
-            totalSupplyShares,
-            totalBorrowAssets,
-            totalBorrowShares,
-            totalCollateral
+            address(this), totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, totalCollateral
         );
     }
 }

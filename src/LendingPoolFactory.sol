@@ -65,13 +65,7 @@ contract LendingPoolFactory {
         lendingPools[address(lendingPool)] = true;
 
         _indexLendingPool(address(lendingPool));
-        emit EventLib.CreateLendingPool(
-            address(lendingPool),
-            loanToken,
-            collateralToken,
-            address(this), // LendingPool is created by factory contract
-            true
-        );
+        emit EventLib.CreateLendingPool(address(lendingPool));
 
         return address(lendingPool);
     }
@@ -102,9 +96,9 @@ contract LendingPoolFactory {
 
         lendingPoolIds[id] = _lendingPool;
         lendingPools[_lendingPool] = true;
-        _indexLendingPool(_lendingPool);
 
-        emit EventLib.StoreLendingPool(_lendingPool, loanToken, collateralToken, lendingPool.owner(), true);
+        _indexLendingPool(_lendingPool);
+        emit EventLib.StoreLendingPool(_lendingPool);
     }
 
     function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {

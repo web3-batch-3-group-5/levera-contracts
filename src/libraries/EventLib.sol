@@ -4,41 +4,33 @@ pragma solidity ^0.8.0;
 import {PoolParams} from "../interfaces/ILendingPool.sol";
 
 library EventLib {
+    // Lending Pool Tables
     event AllLendingPool(
-        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
+        address lendingPoolAddr, address loanToken, address collateralToken, address creator, bool isActive
     );
-
-    event CreateLendingPool(
-        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
-    );
-
-    event StoreLendingPool(
-        address indexed lendingPool, address loanToken, address collateralToken, address creator, bool isActive
-    );
-
-    event DiscardLendingPool(address indexed lendingPool);
-
     event LendingPoolStat(
-        address indexed lendingPool,
-        address loanToken,
-        address collateralToken,
+        address indexed lendingPoolAddr,
         uint256 totalSupplyAssets,
         uint256 totalSupplyShares,
         uint256 totalBorrowAssets,
         uint256 totalBorrowShares,
         uint256 totalCollateral
     );
+    event UserSupplyShare(address lendingPoolAddr, address caller, uint256 supplyShares);
 
-    event UserSupplyShare(address indexed lendingPool, address indexed caller, uint256 supplyShare);
+    // Lending Pool Events
+    event CreateLendingPool(address lendingPoolAddr);
+    event StoreLendingPool(address lendingPoolAddr);
+    event DiscardLendingPool(address lendingPoolAddr);
+    event Supply(address lendingPoolAddr, address caller, uint256 supplyShares);
+    event Withdraw(address lendingPoolAddr, address caller, uint256 supplyShares);
+    event AccrueInterest(address lendingPoolAddr, uint256 prevInterest, uint256 interest);
 
-    event Supply(address indexed lendingPool, address indexed caller, uint256 supplyShare);
-
-    event Withdraw(address indexed lendingPool, address indexed caller, uint256 supplyShare);
-
+    // Position Table
     event UserPosition(
-        address indexed lendingPool,
+        address indexed lendingPoolAddr,
         address indexed caller,
-        address onBehalf,
+        address positionAddr,
         uint256 baseCollateral,
         uint256 totalCollateral,
         uint256 borrowShares,
@@ -48,47 +40,51 @@ library EventLib {
         uint256 ltv
     );
 
+    // Position Events
+    event CreatePosition(address lendingPoolAddr, address caller, address positionAddr);
+    event DeletePosition(address lendingPoolAddr, address caller, address positionAddr);
     event SupplyCollateral(
-        address indexed lendingPool,
-        address indexed caller,
-        address onBehalf,
+        address lendingPoolAddr,
+        address caller,
+        address positionAddr,
         uint256 totalCollateral,
         uint256 borrowShares,
         uint256 leverage
     );
-
     event WithdrawCollateral(
-        address indexed lendingPool,
-        address indexed caller,
-        address onBehalf,
+        address lendingPoolAddr,
+        address caller,
+        address positionAddr,
         uint256 totalCollateral,
         uint256 borrowShares,
         uint256 leverage
     );
-
     event Borrow(
-        address indexed lendingPool,
-        address indexed caller,
-        address onBehalf,
+        address lendingPoolAddr,
+        address caller,
+        address positionAddr,
         uint256 totalCollateral,
         uint256 borrowShares,
         uint256 leverage
     );
-
     event Repay(
-        address indexed lendingPool,
-        address indexed caller,
-        address onBehalf,
+        address lendingPoolAddr,
+        address caller,
+        address positionAddr,
         uint256 totalCollateral,
         uint256 borrowShares,
         uint256 leverage
     );
-
-    event AccrueInterest(address indexed lendingPool, uint256 prevBorrowRate, uint256 interest);
-
-    event PositionCreated(
-        address lendingPool, address caller, address positionAddress, uint256 baseCollateral, uint256 leverage
+    event Liquidate(
+        address lendingPoolAddr,
+        address caller,
+        address positionAddr,
+        uint256 baseCollateral,
+        uint256 totalCollateral,
+        uint256 borrowShares,
+        uint256 leverage,
+        uint256 liquidationPrice,
+        uint256 health,
+        uint256 ltv
     );
-
-    event PositionDeleted(address lendingPool, address caller, address onBehalf);
 }

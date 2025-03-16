@@ -24,7 +24,6 @@ contract REPLDeploy is Script {
     }
 
     address MOCK_UNISWAP_ROUTER;
-    address MOCK_FACTORY;
     address POSITION_FACTORY;
     address LENDING_POOL_FACTORY;
     address LA_DAI;
@@ -40,86 +39,81 @@ contract REPLDeploy is Script {
 
     LendingPoolConfig[] private lendingPoolSeeds;
 
-    function setup() public {
-        string memory json = vm.readFile("config.json");
+    function setUp() public {
+        string memory root = vm.projectRoot();
+        string memory fullPath = string.concat(root, "/config.json");
+        string memory json = vm.readFile(fullPath);
         string memory chain = "109695";
-        bytes memory raw = vm.parseJson(json, string(abi.encodePacked(".", chain)));
 
-        (
-            MOCK_UNISWAP_ROUTER,
-            MOCK_FACTORY,
-            POSITION_FACTORY,
-            LENDING_POOL_FACTORY,
-            LA_DAI,
-            LA_DAI_PRICE_FEED,
-            LA_USDC,
-            LA_USDC_PRICE_FEED,
-            LA_USDT,
-            LA_USDT_PRICE_FEED,
-            LA_WBTC,
-            LA_WBTC_PRICE_FEED,
-            LA_WETH,
-            LA_WETH_PRICE_FEED
-        ) = abi.decode(
-            raw,
-            (
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address,
-                address
-            )
-        );
+        MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
+        POSITION_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".POSITION_FACTORY"));
+        LENDING_POOL_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".LENDING_POOL_FACTORY"));
+        LA_DAI = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_DAI"));
+        LA_DAI_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_DAI_PRICE_FEED"));
+        LA_USDC = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_USDC"));
+        LA_USDC_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_USDC_PRICE_FEED"));
+        LA_USDT = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_USDT"));
+        LA_USDT_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_USDT_PRICE_FEED"));
+        LA_WBTC = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WBTC"));
+        LA_WBTC_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WBTC_PRICE_FEED"));
+        LA_WETH = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WETH"));
+        LA_WETH_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WETH_PRICE_FEED"));
     }
 
-    function init() public {
-        uint256 supplyAmount = 10_000e18;
-        uint256 baseCollateral = 1e12;
-        uint256 leverage = 200;
-
-        bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
-        vm.startBroadcast(uint256(privateKey));
-
-        // LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
-        LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(MOCK_UNISWAP_ROUTER);
+    function _setupLendingPool() internal returns (address) {
+        LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
+        // LendingPoolFactory lendingPoolFactory = new LendingPoolFactory(MOCK_UNISWAP_ROUTER);
         address lendingPoolAddr = lendingPoolFactory.createLendingPool(
             LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 80, 5, PositionType.LONG
         );
-        address loanToken = ILendingPool(lendingPoolAddr).loanToken();
-        address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
         console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
         console.log("Lending Pool deployed at:", lendingPoolAddr);
 
-        MockERC20(loanToken).mint(address(this), supplyAmount);
-        MockERC20(collateralToken).mint(address(this), baseCollateral);
+        lendingPoolFactory.discardLendingPool(lendingPoolAddr);
+        return lendingPoolAddr;
+    }
 
+    function _supplyLendingPool(address lendingPoolAddr) internal {
+        uint256 supplyAmount = 10_000e6; // LaUSDC
+        uint256 collateralReserve = 10_000e8; // LaWBTC -- need deposit for flashloan
+
+        address loanToken = ILendingPool(lendingPoolAddr).loanToken();
+        address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
+
+        MockERC20(loanToken).mint(address(this), supplyAmount);
+        MockERC20(collateralToken).mint(lendingPoolAddr, collateralReserve);
         MockERC20(loanToken).approve(lendingPoolAddr, supplyAmount);
         ILendingPool(lendingPoolAddr).supply(supplyAmount);
+    }
 
+    function _init() internal {
+        // uint256 baseCollateral = 1e2; // LaWBTC
+        // uint256 leverage = 200;
+
+        bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
+        vm.startBroadcast(uint256(privateKey));
+        _setupLendingPool();
+        // address lendingPoolAddr = _setupLendingPool();
+        // address lendingPoolAddr = LendingPool(LENDING_POOL);
+        // address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
+        // _supplyLendingPool(lendingPoolAddr);
+
+        // Create Position
         // PositionFactory positionFactory = PositionFactory(POSITION_FACTORY);
-        PositionFactory positionFactory = new PositionFactory();
-        MockERC20(collateralToken).approve(address(this), baseCollateral);
-        MockERC20(collateralToken).approve(address(positionFactory), baseCollateral);
-        console.log("Position Factory deployed at:", address(positionFactory));
+        // // PositionFactory positionFactory = new PositionFactory();
+        // MockERC20(collateralToken).approve(address(this), baseCollateral);
+        // MockERC20(collateralToken).approve(address(positionFactory), baseCollateral);
+        // console.log("Position Factory deployed at:", address(positionFactory));
 
-        address onBehalf = positionFactory.createPosition(lendingPoolAddr, baseCollateral, leverage);
-        console.log("Position deployed at:", onBehalf);
+        // address onBehalf = positionFactory.createPosition(lendingPoolAddr, baseCollateral, leverage);
+        // console.log("Position deployed at:", onBehalf);
 
-        positionFactory.deletePosition(lendingPoolAddr, onBehalf);
+        // positionFactory.deletePosition(lendingPoolAddr, onBehalf);
         vm.stopBroadcast();
     }
 
-    function createBulkLendingPools() public {
-        uint256 supplyAmount = 10_000e18;
+    function _createBulkLendingPools() internal {
+        uint256 supplyAmount = 10_000;
 
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(privateKey);
@@ -143,19 +137,21 @@ contract REPLDeploy is Script {
                 5,
                 PositionType.LONG
             );
-
-            address loanToken = ILendingPool(lendingPoolAddr).loanToken();
             console.log("Lending Pool deployed at:", lendingPoolAddr);
 
-            MockERC20(loanToken).mint(address(this), supplyAmount);
-            MockERC20(loanToken).approve(lendingPoolAddr, supplyAmount);
-            ILendingPool(lendingPoolAddr).supply(supplyAmount);
+            address loanToken = ILendingPool(lendingPoolAddr).loanToken();
+            uint256 decimals = MockERC20(loanToken).decimals();
+            uint256 normalizedAmount = supplyAmount * (10 ** decimals);
+
+            MockERC20(loanToken).mint(address(this), normalizedAmount);
+            MockERC20(loanToken).approve(lendingPoolAddr, normalizedAmount);
+            ILendingPool(lendingPoolAddr).supply(normalizedAmount);
         }
 
         vm.stopBroadcast();
     }
 
     function run() external {
-        createBulkLendingPools();
+        _init();
     }
 }

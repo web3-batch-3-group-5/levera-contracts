@@ -34,7 +34,7 @@ contract PositionFactory {
 
         newPosition.openPosition(_baseCollateral, _leverage);
 
-        emit EventLib.PositionCreated(_lendingPool, msg.sender, positionAddr, _baseCollateral, _leverage);
+        emit EventLib.CreatePosition(_lendingPool, msg.sender, positionAddr);
         return positionAddr;
     }
 
@@ -49,7 +49,7 @@ contract PositionFactory {
         IERC20(loanToken).approve(address(this), withdrawAmount);
         IERC20(loanToken).transfer(msg.sender, withdrawAmount);
 
-        emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
+        emit EventLib.DeletePosition(_lendingPool, msg.sender, onBehalf);
         return onBehalf;
     }
 

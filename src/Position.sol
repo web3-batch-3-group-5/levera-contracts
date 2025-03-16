@@ -42,9 +42,9 @@ contract Position {
         lastUpdated = block.timestamp;
 
         emit EventLib.UserPosition(
+            address(this),
             address(lendingPool),
             creator,
-            address(this),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
