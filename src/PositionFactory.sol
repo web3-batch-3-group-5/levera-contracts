@@ -53,6 +53,21 @@ contract PositionFactory {
         return onBehalf;
     }
 
+    function liquidatePosition(address _lendingPool, address onBehalf) external returns (address) {
+        address loanToken = ILendingPool(_lendingPool).loanToken();
+
+        uint256 withdrawAmount = IPosition(onBehalf).liquidatePosition();
+        positions[msg.sender][onBehalf] = false;
+
+        _removeUserPosition(msg.sender, _lendingPool, onBehalf);
+
+        IERC20(loanToken).approve(address(this), withdrawAmount);
+        IERC20(loanToken).transfer(msg.sender, withdrawAmount);
+
+        emit EventLib.PositionDeleted(_lendingPool, msg.sender, onBehalf);
+        return onBehalf;
+    }
+
     function _removeUserPosition(address user, address _lendingPool, address position) internal {
         uint256 length = userPoolPositions[user][_lendingPool].length;
         for (uint256 i = 0; i < length; i++) {

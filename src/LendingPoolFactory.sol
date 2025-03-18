@@ -8,6 +8,7 @@ import {ILendingPool} from "./interfaces/ILendingPool.sol";
 import {EventLib} from "./libraries/EventLib.sol";
 import {LendingPool} from "./LendingPool.sol";
 import {PositionType} from "./interfaces/ILendingPool.sol";
+import {Vault} from "./Vault.sol";
 
 contract LendingPoolFactory {
     error NotALendingPool();
@@ -19,6 +20,7 @@ contract LendingPoolFactory {
     address public owner;
     mapping(bytes32 => address) public lendingPoolIds;
     mapping(address => bool) public lendingPools;
+    mapping(bytes32 => address) public vaults;
     address[] public createdLendingPools;
 
     constructor(address _router) {
@@ -48,6 +50,13 @@ contract LendingPoolFactory {
         bytes32 id = keccak256(abi.encode(loanToken, collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
+        address vaultAddress = vaults[id];
+        if (vaultAddress == address(0)) {
+            Vault newVault = new Vault(loanToken, collateralToken, address(this));
+            vaultAddress = address(newVault);
+            vaults[id] = vaultAddress;
+        }
+
         LendingPool lendingPool = new LendingPool(
             IERC20(loanToken),
             IERC20(collateralToken),
@@ -57,12 +66,14 @@ contract LendingPoolFactory {
             liquidationThresholdPercentage,
             interestRate,
             positionType,
-            msg.sender
+            msg.sender,
+            vaultAddress
         );
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
 
         lendingPools[address(lendingPool)] = true;
+        Vault(vaultAddress).setLendingPool(address(lendingPool), true);
 
         _indexLendingPool(address(lendingPool));
         emit EventLib.CreateLendingPool(

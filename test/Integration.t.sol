@@ -63,6 +63,10 @@ contract IntegrationTest is Test {
         );
         lendingPool = LendingPool(lendingPoolAddress);
 
+        // Get Vault Address
+        bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
+        address vaultAddress = lendingPoolFactory.vaults(poolId);
+
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
         console.log("Mock WBTC deployed at:", address(mockWBTC));
@@ -72,6 +76,7 @@ contract IntegrationTest is Test {
         console.log("Liquidation Threshold Percentage:", liquidationThresholdPercentage);
         console.log("Interest Rate Percentage:", interestRate);
         console.log("Position Type (0 = LONG, 1 = SHORT):", uint8(positionType));
+        console.log(positions[alice][address(mockWBTC)]); // Should print true if position exists
         console.log("==============================================================");
 
         mockWBTC.mint(address(lendingPool), 1_000_000e18);
@@ -91,7 +96,36 @@ contract IntegrationTest is Test {
         // vm.startPrank(bob);
         // supplyLiquidity(50_000e18);
         // vm.stopPrank();
+
+        // Ensure Vault Exists
+        assert(vaultAddress != address(0));
+
+        // Check if LendingPool is using the correct Vault
+        assertEq(address(lendingPool.vault()), vaultAddress);
     }
+
+    // function testVaultReuse() public {
+    //     bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
+
+    //     // First Lending Pool
+    //     address firstVault = lendingPoolFactory.vaults(poolId);
+    //     assert(firstVault != address(0));
+
+    //     address lendingPool2Address = lendingPoolFactory.createLendingPool(
+    //         address(mockUSDC),
+    //         address(mockWBTC),
+    //         address(usdcUsdPriceFeed),
+    //         address(wbtcUsdPriceFeed),
+    //         liquidationThresholdPercentage,
+    //         interestRate,
+    //         positionType
+    //     );
+    //     LendingPool lendingPool2 = LendingPool(lendingPool2Address);
+
+    //     // Ensure Vault is Reused
+    //     address secondVault = lendingPoolFactory.vaults(poolId);
+    //     assertEq(firstVault, secondVault);
+    // }
 
     function supplyLiquidity(uint256 amount) internal {
         IERC20(mockUSDC).approve(address(lendingPool), amount);
@@ -114,9 +148,16 @@ contract IntegrationTest is Test {
         lendingPool.registerPosition(positionAddr);
         console.log("Position created at", address(positionAddr));
 
-        IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
+        address creator = address(this);
+        vm.startPrank(creator); // Ensure it's the creator making the call
 
+        IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
         position.openPosition(_baseCollateral, _leverage);
+        vm.stopPrank();
+
+        // IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
+
+        // position.openPosition(_baseCollateral, _leverage);
 
         // Replace openPosition
         // position.addCollateral(_baseCollateral);
@@ -134,6 +175,8 @@ contract IntegrationTest is Test {
         console.log("LTV", position.ltv());
         console.log("Borrow Shares", position.borrowShares());
         console.log("Estimated Borrow Amount", position.convertBorrowSharesToAmount(position.borrowShares()));
+        console.log("Position creator", position.creator());
+        console.log("Position owner", position.owner());
         console.log("==============================================================");
 
         return positionAddr;
@@ -192,8 +235,10 @@ contract IntegrationTest is Test {
         IERC20(mockWBTC).transfer(address(this), addedCollateral);
         vm.stopPrank();
 
+        vm.startPrank(alice); // Ensure it's the creator
         IERC20(mockWBTC).approve(onBehalf, addedCollateral);
         IPosition(onBehalf).addCollateral(addedCollateral);
+        vm.stopPrank();
 
         console.log("==============================================================");
         console.log("After Alice add collateral");
@@ -380,5 +425,26 @@ contract IntegrationTest is Test {
         mockWBTC.mint(receiver, wbtc);
 
         IERC20(token).approve(address(lendingPool), amount);
+    }
+
+    function test_liquidatePosition() public {
+        uint256 baseCollateral = 1e12;
+        uint8 leverage = 200;
+
+        // Alice Create Position
+        address onBehalf = createPosition(alice, baseCollateral, leverage);
+
+        assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
+        console.log("==============================================================");
+        console.log("After Alice create position");
+        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
+
+        uint256 withdrawAmount = IPosition(onBehalf).liquidatePosition();
+        positions[alice][onBehalf] = false;
+
+        console.log("==============================================================");
+        console.log("After Alice close position");
+        console.log("mockUSDC balance token", IERC20(mockUSDC).balanceOf(address(this)));
+        console.log("withdrawAmount =", withdrawAmount);
     }
 }

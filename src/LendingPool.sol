@@ -8,6 +8,9 @@ import {EventLib} from "./libraries/EventLib.sol";
 import {IPosition} from "./interfaces/IPosition.sol";
 import {PositionType, ISwapRouter, IFlashLoanCallback} from "./interfaces/ILendingPool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {Vault} from "./Vault.sol";
+
+import {Test, console} from "forge-std/Test.sol";
 
 contract LendingPool {
     error InvalidToken();
@@ -20,6 +23,8 @@ contract LendingPool {
     error ZeroAddress();
     error ZeroAmount();
     error FlashLoanFailed();
+
+    Vault public vault;
 
     address public router;
     address public immutable owner;
@@ -52,7 +57,8 @@ contract LendingPool {
         uint256 _ltp,
         uint256 _interestRate,
         PositionType _positionType,
-        address _creator
+        address _creator,
+        address _vault
     ) {
         owner = msg.sender;
         creator = _creator;
@@ -65,6 +71,7 @@ contract LendingPool {
         positionType = _positionType;
         interestRate = _interestRate;
         contractId = _getContractId();
+        vault = Vault(_vault);
     }
 
     modifier onlyActivePosition(address onBehalf) {
@@ -96,6 +103,10 @@ contract LendingPool {
         // Transfer USDC from sender to contract
         IERC20(loanToken).transferFrom(msg.sender, address(this), amount);
 
+        // Transfer USDC from contract to vault
+        IERC20(loanToken).approve(address(vault), amount);
+        vault.deposit(amount);
+
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
         emit EventLib.Supply(address(this), msg.sender, userSupplyShares[msg.sender]);
     }
@@ -113,6 +124,7 @@ contract LendingPool {
         totalSupplyShares -= shares;
         userSupplyShares[msg.sender] -= shares;
 
+        vault.withdraw(amount);
         IERC20(loanToken).transfer(msg.sender, amount);
 
         emit EventLib.UserSupplyShare(address(this), msg.sender, userSupplyShares[msg.sender]);
@@ -144,7 +156,7 @@ contract LendingPool {
         onlyActivePosition(onBehalf)
         returns (uint256 shares)
     {
-        uint256 availableLiquidity = IERC20(loanToken).balanceOf(address(this));
+        uint256 availableLiquidity = vault.balances(address(this));
         if (availableLiquidity < amount) revert InsufficientLiquidity();
 
         _accrueInterest();
@@ -198,16 +210,19 @@ contract LendingPool {
     }
 
     // flashloan
+    // function flashLoan(address token, uint256 amount, bytes calldata data) external {
+    //     if (token != address(loanToken) && token != address(collateralToken)) revert InvalidToken();
+    //     if (amount == 0) revert ZeroAmount();
+    //     if (MockERC20(token).balanceOf(address(this)) < amount) revert InsufficientLiquidity();
+
+    //     MockERC20(token).transfer(msg.sender, amount);
+
+    //     IFlashLoanCallback(msg.sender).onFlashLoan(token, amount, data);
+
+    //     MockERC20(token).transferFrom(msg.sender, address(this), amount);
+    // }
     function flashLoan(address token, uint256 amount, bytes calldata data) external {
-        if (token != address(loanToken) && token != address(collateralToken)) revert InvalidToken();
-        if (amount == 0) revert ZeroAmount();
-        if (MockERC20(token).balanceOf(address(this)) < amount) revert InsufficientLiquidity();
-
-        MockERC20(token).transfer(msg.sender, amount);
-
-        IFlashLoanCallback(msg.sender).onFlashLoan(token, amount, data);
-
-        MockERC20(token).transferFrom(msg.sender, address(this), amount);
+        vault.flashLoan(token, amount, data);
     }
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256) {

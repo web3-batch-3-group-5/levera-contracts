@@ -6,6 +6,7 @@ import {ILendingPool, ISwapRouter} from "./interfaces/ILendingPool.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
+import {Vault} from "./Vault.sol";
 
 contract Position {
     error InsufficientCollateral();
@@ -15,6 +16,9 @@ contract Position {
     error PositionAtRisk();
     error ZeroAddress();
     error ZeroAmount();
+    error Unauthorized();
+    error PositionAlreadyLiquidated();
+    error PositionHealthy();
 
     address public router;
     address public immutable owner;
@@ -28,6 +32,7 @@ contract Position {
     uint256 public health;
     uint256 public ltv;
     uint256 public lastUpdated;
+    uint256 public status; // 0= open, 1= closed, 2=liquidated
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
@@ -36,6 +41,16 @@ contract Position {
         creator = _creator;
         lendingPool = ILendingPool(_lendingPool);
         router = _router;
+    }
+
+    modifier onlyCreator() {
+        if (msg.sender != creator) revert Unauthorized();
+        _;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
     }
 
     function _emitUpdatePosition() internal {
@@ -104,7 +119,7 @@ contract Position {
         ltv = lendingPool.getLTV(effectiveCollateralPrice, borrowAmount);
     }
 
-    function addCollateral(uint256 amount) public {
+    function addCollateral(uint256 amount) public onlyCreator {
         IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), amount);
         baseCollateral += amount;
         _supplyCollateral(amount);
@@ -123,7 +138,7 @@ contract Position {
         _emitSupplyCollateral();
     }
 
-    function withdrawCollateral(uint256 amount) public {
+    function withdrawCollateral(uint256 amount) public onlyCreator {
         if (amount == 0) revert ZeroAmount();
         if (amount > baseCollateral) revert InsufficientCollateral();
         baseCollateral -= amount;
@@ -154,7 +169,7 @@ contract Position {
         setRiskInfo();
     }
 
-    function openPosition(uint256 _baseCollateral, uint256 _leverage) public {
+    function openPosition(uint256 _baseCollateral, uint256 _leverage) public onlyOwner {
         address collateralToken = lendingPool.collateralToken();
         baseCollateral = _baseCollateral;
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
@@ -189,7 +204,7 @@ contract Position {
         _swap(lendingPool.loanToken(), token, borrowAmount);
     }
 
-    function _swap(address tokenIn, address tokenOut, uint256 amount) internal returns (uint256) {
+    function _swap(address tokenIn, address tokenOut, uint256 amount) internal onlyCreator returns (uint256) {
         IERC20(tokenIn).approve(address(router), amount);
 
         ISwapRouter(router).exactInputSingle(
@@ -217,7 +232,7 @@ contract Position {
         if (healthFactor < 1) revert PositionAtRisk();
     }
 
-    function updateLeverage(uint256 newLeverage) external {
+    function updateLeverage(uint256 newLeverage) external onlyCreator {
         if (newLeverage < 100) revert InsufficientMinimumLeverage();
         if (newLeverage > 500) revert LeverageTooHigh();
 
@@ -252,7 +267,19 @@ contract Position {
         _emitUpdatePosition();
     }
 
-    function closePosition() external returns (uint256) {
+    function _resetPosition(uint256 _status) internal {
+        borrowShares = 0;
+        baseCollateral = 0;
+        effectiveCollateral = 0;
+        leverage = 100;
+        liquidationPrice = 0;
+        health = 0;
+        ltv = 0;
+        status = _status;
+        _emitUpdatePosition();
+    }
+
+    function closePosition() external onlyOwner returns (uint256) {
         lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
         _emitWithdrawCollateral();
 
@@ -266,14 +293,36 @@ contract Position {
         IERC20(lendingPool.loanToken()).approve(address(this), diffAmount);
         IERC20(lendingPool.loanToken()).transfer(msg.sender, diffAmount);
 
-        borrowShares = 0;
-        baseCollateral = 0;
-        effectiveCollateral = 0;
-        leverage = 100;
-        liquidationPrice = 0;
-        health = 0;
-        ltv = 0;
-        _emitUpdatePosition();
+        _resetPosition(1);
+
+        return diffAmount;
+    }
+
+    function liquidatePosition() external onlyOwner returns (uint256) {
+        if (status == 2) revert PositionAlreadyLiquidated();
+
+        setRiskInfo();
+
+        // Ensure the position is at risk
+        if (health > 0 && ltv < 100) revert PositionHealthy();
+
+        lendingPool.withdrawCollateralByPosition(address(this), effectiveCollateral);
+        _emitWithdrawCollateral();
+
+        // Transfer remaining collateral to the owner (if any remaining)
+        uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
+        uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
+        IERC20(lendingPool.loanToken()).approve(address(lendingPool), amountOut);
+        lendingPool.repayByPosition(address(this), borrowShares);
+        _emitRepay();
+
+        uint256 diffAmount = amountOut - borrowAmount;
+        if (diffAmount > 0) {
+            IERC20(lendingPool.loanToken()).approve(address(this), diffAmount);
+            IERC20(lendingPool.loanToken()).transfer(msg.sender, diffAmount);
+        }
+
+        _resetPosition(2);
 
         return diffAmount;
     }

@@ -33,4 +33,5 @@ interface IPosition {
         returns (bool);
     function openPosition() external;
     function closePosition() external returns (uint256);
+    function liquidatePosition() external returns (uint256);
 }

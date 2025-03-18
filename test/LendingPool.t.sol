@@ -11,6 +11,7 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
 import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
 import {IPosition} from "../src/interfaces/IPosition.sol";
+import {Vault} from "../src/Vault.sol";
 
 contract LendingPoolTest is Test {
     MockERC20 public mockUSDC;
@@ -20,6 +21,7 @@ contract LendingPoolTest is Test {
     LendingPool public lendingPool;
     LendingPoolFactory public lendingPoolFactory;
     MockFactory public mockFactory;
+    Vault public vault;
 
     uint8 liquidationThresholdPercentage = 80;
     uint8 interestRate = 5;
@@ -51,6 +53,7 @@ contract LendingPoolTest is Test {
             positionType
         );
         lendingPool = LendingPool(lendingPoolAddress);
+        vault = lendingPool.vault();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
@@ -62,12 +65,26 @@ contract LendingPoolTest is Test {
         console.log("Liquidation Threshold Percentage:", liquidationThresholdPercentage);
         console.log("Interest Rate Percentage:", interestRate);
         console.log("Position Type (0 = LONG, 1 = SHORT):", uint8(positionType));
+        console.log("Vault deployed at:", address(vault));
         console.log("==============================================================");
 
         mockUSDC.mint(alice, 100_000e6);
         mockWBTC.mint(alice, 1e8);
         mockUSDC.mint(bob, 100_000e6);
         mockWBTC.mint(bob, 2e8);
+        deal(address(mockUSDC), address(vault), 100e6);
+
+        // bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
+        // address vaultAddress = lendingPoolFactory.vaults(poolId);
+        // Vault vault = Vault(vaultAddress);
+        // console.log("Vault Address:", vaultAddress);
+        // // Impersonate Vault Owner
+        // address vaultOwner = vault.owner();
+        // vm.startPrank(vaultOwner);
+        // vault.setLendingPool(address(lendingPool), true);
+        // vm.stopPrank();
+
+        // assertTrue(Vault != address(0), "Vault was not created!");
     }
 
     function supplyLiquidity(uint256 amount) internal {
@@ -77,6 +94,18 @@ contract LendingPoolTest is Test {
 
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;
+
+        bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
+        address vaultAddress = lendingPoolFactory.vaults(poolId);
+        Vault vault = Vault(vaultAddress);
+
+        console.log("Vault Address:", vaultAddress);
+        console.log("Alice USDC Balance After Mint:", IERC20(mockUSDC).balanceOf(alice));
+
+        address vaultOwner = vault.owner();
+        vm.startPrank(vaultOwner);
+        vault.setLendingPool(address(lendingPool), true);
+        vm.stopPrank();
 
         // Alice supply liquidity
         vm.startPrank(alice);
@@ -90,8 +119,11 @@ contract LendingPoolTest is Test {
         // Verify LendingPool's totalSupplyAssets
         assertEq(lendingPool.totalSupplyAssets(), initialDeposit, "Total supply should update");
 
-        // Ensure LendingPool received USDC
-        assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), initialDeposit, "LendingPool should receive USDC");
+        // Ensure LendingPool doesn't hold USDC directly
+        assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), 0, "LendingPool should not hold USDC directly");
+
+        // Ensure Vault received the USDC
+        assertEq(IERC20(mockUSDC).balanceOf(vaultAddress), initialDeposit, "Vault should hold the supplied USDC");
 
         // Check Alice's USDC balance (should decrease)
         uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
@@ -122,6 +154,10 @@ contract LendingPoolTest is Test {
         supplyLiquidity(supplyAmount);
         vm.stopPrank();
 
+        // Check Vault USDC balance before withdraw
+        address vaultAddress = lendingPoolFactory.vaults(keccak256(abi.encode(address(mockUSDC), address(mockWBTC))));
+        uint256 vaultBalanceBefore = IERC20(mockUSDC).balanceOf(vaultAddress);
+
         // Ensure Alice's initial shares are correct
         assertEq(lendingPool.userSupplyShares(alice), supplyAmount, "Alice should have correct supply shares");
 
@@ -133,7 +169,13 @@ contract LendingPoolTest is Test {
         // Validate updated shares and balances
         assertEq(lendingPool.userSupplyShares(alice), supplyAmount - withdrawShares, "Alice's shares should decrease");
         assertEq(lendingPool.totalSupplyShares(), supplyAmount - withdrawShares, "Total shares should decrease");
+
+        // Check that Alice received USDC
         assertEq(IERC20(mockUSDC).balanceOf(alice), withdrawShares, "Alice should receive withdrawn USDC");
+
+        // Check Vault's balance after withdrawal
+        uint256 vaultBalanceAfter = IERC20(mockUSDC).balanceOf(vaultAddress);
+        assertEq(vaultBalanceAfter, vaultBalanceBefore - withdrawShares, "Vault should decrease by withdraw amount");
 
         // Ensure withdrawal of `0` shares fails
         vm.startPrank(alice);
@@ -150,7 +192,7 @@ contract LendingPoolTest is Test {
 
     function test_flashLoan() public {
         // give 100 USDC to lending pool
-        deal(address(mockUSDC), address(lendingPool), 100e6);
+        deal(address(mockUSDC), address(vault), 100e6);
         uint256 amount = 100e6;
 
         // encode parameter to bytes: address,uint256
