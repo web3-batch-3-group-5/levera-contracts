@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ILendingPool, ISwapRouter} from "./interfaces/ILendingPool.sol";
+import {PositionStatus} from "./interfaces/IPosition.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
@@ -28,6 +29,7 @@ contract Position {
     uint256 public health;
     uint256 public ltv;
     uint256 public lastUpdated;
+    PositionStatus public status = PositionStatus.OPEN;
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
@@ -51,7 +53,8 @@ contract Position {
             leverage,
             liquidationPrice,
             health,
-            ltv
+            ltv,
+            uint8(status)
         );
     }
 
@@ -273,6 +276,7 @@ contract Position {
         liquidationPrice = 0;
         health = 0;
         ltv = 0;
+        status = PositionStatus.CLOSED;
         _emitUpdatePosition();
 
         return diffAmount;

@@ -115,8 +115,8 @@ contract REPLDeploy is Script {
         console.log("Position deployed at:", onBehalf);
 
         // Destroy
-        lendingPoolFactory.discardLendingPool(lendingPoolAddr);
         positionFactory.deletePosition(lendingPoolAddr, onBehalf);
+        lendingPoolFactory.discardLendingPool(lendingPoolAddr);
         vm.stopBroadcast();
     }
 

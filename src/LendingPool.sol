@@ -226,7 +226,14 @@ contract LendingPool {
 
     function _indexLendingPool() internal {
         emit EventLib.LendingPoolStat(
-            address(this), totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, totalCollateral
+            address(this),
+            totalSupplyAssets,
+            totalSupplyShares,
+            totalBorrowAssets,
+            totalBorrowShares,
+            totalCollateral,
+            ltp,
+            interestRate
         );
     }
 }

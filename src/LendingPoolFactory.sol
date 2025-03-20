@@ -125,8 +125,11 @@ contract LendingPoolFactory {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         address loanToken = ILendingPool(_lendingPool).loanToken();
         address creator = ILendingPool(_lendingPool).creator();
+        PositionType positionType = ILendingPool(_lendingPool).positionType();
 
-        emit EventLib.AllLendingPool(_lendingPool, loanToken, collateralToken, creator, lendingPools[_lendingPool]);
+        emit EventLib.AllLendingPool(
+            _lendingPool, loanToken, collateralToken, uint8(positionType), creator, lendingPools[_lendingPool]
+        );
     }
 
     function getTokenName(address _token) public view returns (string memory) {

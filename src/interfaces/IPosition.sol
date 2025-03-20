@@ -34,3 +34,9 @@ interface IPosition {
     function openPosition() external;
     function closePosition() external returns (uint256);
 }
+
+enum PositionStatus {
+    OPEN,
+    CLOSED,
+    LIQUIDATED
+}

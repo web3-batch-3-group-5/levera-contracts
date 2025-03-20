@@ -6,7 +6,12 @@ import {PoolParams} from "../interfaces/ILendingPool.sol";
 library EventLib {
     // Lending Pool Tables
     event AllLendingPool(
-        address lendingPoolAddr, address loanToken, address collateralToken, address creator, bool isActive
+        address lendingPoolAddr,
+        address loanToken,
+        address collateralToken,
+        uint8 positionType,
+        address creator,
+        bool isActive
     );
     event LendingPoolStat(
         address indexed lendingPoolAddr,
@@ -14,7 +19,9 @@ library EventLib {
         uint256 totalSupplyShares,
         uint256 totalBorrowAssets,
         uint256 totalBorrowShares,
-        uint256 totalCollateral
+        uint256 totalCollateral,
+        uint256 ltp,
+        uint256 interestRate
     );
     event UserSupplyShare(address lendingPoolAddr, address caller, uint256 supplyShares);
 
@@ -37,7 +44,8 @@ library EventLib {
         uint256 leverage,
         uint256 liquidationPrice,
         uint256 health,
-        uint256 ltv
+        uint256 ltv,
+        uint8 status
     );
 
     // Position Events
