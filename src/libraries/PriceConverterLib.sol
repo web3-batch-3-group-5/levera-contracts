@@ -8,7 +8,7 @@ library PriceConverterLib {
 
     uint256 constant PRECISION = 1e18; // ETH Precision
 
-    function getPrice(AggregatorV2V3Interface dataFeed) public view returns (uint256) {
+    function getPrice(AggregatorV2V3Interface dataFeed) internal view returns (uint256) {
         (, int256 answer,,,) = dataFeed.latestRoundData();
         if (answer < 0) revert NegativeAnswer();
 
@@ -20,17 +20,14 @@ library PriceConverterLib {
         uint256 amountIn,
         AggregatorV2V3Interface dataFeedIn,
         AggregatorV2V3Interface dataFeedOut
-    ) public view returns (uint256 amountOut) {
+    ) internal view returns (uint256 amountOut) {
         uint256 priceFeedIn = getPrice(dataFeedIn); // WBTC/USD
         uint256 priceFeedOut = getPrice(dataFeedOut); // USDC/USD
 
-        // Normalize amountIn to 18 decimals
-        uint256 amountInNormalized = amountIn * (10 ** (18 - dataFeedIn.decimals()));
+        // Normalize amount to 18 decimals
+        uint256 amountInNormalized = (amountIn * priceFeedIn * (10 ** (18 - dataFeedIn.decimals())));
+        uint256 amountOutNormalized = priceFeedOut * (10 ** (18 - dataFeedOut.decimals()));
 
-        // Convert value
-        uint256 amountOutNormalized = (amountInNormalized * priceFeedIn) / priceFeedOut;
-
-        // Convert back to the correct decimals of the output token
-        return amountOutNormalized / (10 ** (18 - dataFeedOut.decimals()));
+        return amountInNormalized / amountOutNormalized;
     }
 }

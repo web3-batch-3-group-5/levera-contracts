@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {ISwapRouter} from "../interfaces/ILendingPool.sol";
+import {PriceConverterLib} from "../libraries/PriceConverterLib.sol";
 import {MockERC20} from "./MockERC20.sol";
 
 contract MockUniswapRouter is ISwapRouter {
@@ -24,15 +25,8 @@ contract MockUniswapRouter is ISwapRouter {
         require(address(priceFeedIn) != address(0), "No price feed for tokenIn");
         require(address(priceFeedOut) != address(0), "No price feed for tokenOut");
 
-        uint256 priceIn = uint256(priceFeedIn.latestAnswer());
-        uint256 priceOut = uint256(priceFeedOut.latestAnswer());
-        uint8 decimalsIn = priceFeedIn.decimals();
-        uint8 decimalsOut = priceFeedOut.decimals();
-
-        require(priceIn > 0 && priceOut > 0, "Invalid token price");
-
         // Normalize price precision
-        amountOut = (params.amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
+        amountOut = PriceConverterLib.getConversionRate(params.amountIn, priceFeedIn, priceFeedOut);
 
         require(amountOut >= params.amountOutMinimum, "Slippage exceeded");
 

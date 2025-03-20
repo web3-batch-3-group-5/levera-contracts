@@ -18,6 +18,8 @@ contract REPLMockDeploy is Script {
         string symbol;
         uint8 decimals;
         int256 price;
+        // test
+        uint256 supplyAmount;
     }
 
     address MOCK_UNISWAP_ROUTER;
@@ -46,11 +48,11 @@ contract REPLMockDeploy is Script {
         LA_WBTC = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WBTC"));
         LA_WETH = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_WETH"));
 
-        mockTokens.push(MockConfig(LA_DAI, "Mock DAI", "laDAI", 18, 1e18));
-        mockTokens.push(MockConfig(LA_USDC, "Mock USD Coin", "laUSDC", 6, 1e6));
-        mockTokens.push(MockConfig(LA_USDT, "Mock USD Token", "laUSDT", 6, 1e6));
-        mockTokens.push(MockConfig(LA_WBTC, "Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8));
-        mockTokens.push(MockConfig(LA_WETH, "Mock Wrapped Ethereum", "laWETH", 18, 2_500e18));
+        mockTokens.push(MockConfig(LA_DAI, "Mock DAI", "laDAI", 18, 1e18, 1_000_000e18));
+        mockTokens.push(MockConfig(LA_USDC, "Mock USD Coin", "laUSDC", 6, 1e6, 1_000_000e6));
+        mockTokens.push(MockConfig(LA_USDT, "Mock USD Token", "laUSDT", 6, 1e6, 1_000_000e6));
+        mockTokens.push(MockConfig(LA_WBTC, "Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8, 1_000e8));
+        mockTokens.push(MockConfig(LA_WETH, "Mock Wrapped Ethereum", "laWETH", 18, 2_500e18, 40_000e18));
     }
 
     function setupFlameMockUniswapRouter() public {
@@ -81,16 +83,23 @@ contract REPLMockDeploy is Script {
     }
 
     function mintMockToken() public {
-        address receiver = 0x2808Dc7E5eFC9409CdD6166E01ce44Ae9a84bb32;
+        address receiver = 0x6dE5361925d8f869fA7dEECe6cF842CC703fE26f;
         for (uint256 i = 0; i < mockTokens.length; i++) {
             address token = mockTokens[i].contractAddr;
             MockERC20 mockERC20 = MockERC20(token);
-            mockERC20.mint(receiver, 10 ** mockERC20.decimals());
+            mockERC20.mint(receiver, mockTokens[i].supplyAmount);
             console.log(string(abi.encodePacked("Successfully mint ", mockTokens[i].symbol, " to Address:")), receiver);
+        }
+
+        for (uint256 i = 0; i < mockTokens.length; i++) {
+            address token = mockTokens[i].contractAddr;
+            console.log(
+                string(abi.encodePacked("Balance ", mockTokens[i].symbol)), MockERC20(token).balanceOf(receiver)
+            );
         }
     }
 
     function run() external {
-        mintMockToken();
+        setupFlameMockUniswapRouter();
     }
 }
