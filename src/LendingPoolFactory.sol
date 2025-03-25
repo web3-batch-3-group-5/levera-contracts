@@ -17,15 +17,16 @@ contract LendingPoolFactory {
     error Unauthorized();
 
     address public router;
+    address public vault;
     address public owner;
     mapping(bytes32 => address) public lendingPoolIds;
     mapping(address => bool) public lendingPools;
-    mapping(bytes32 => address) public vaults;
     address[] public createdLendingPools;
 
-    constructor(address _router) {
+    constructor(address _router, address _vault) {
         owner = msg.sender;
         router = _router;
+        vault = _vault;
     }
 
     modifier canUpdate(address _lendingPool) {
@@ -50,13 +51,6 @@ contract LendingPoolFactory {
         bytes32 id = keccak256(abi.encode(loanToken, collateralToken));
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
-        address vaultAddress = vaults[id];
-        if (vaultAddress == address(0)) {
-            Vault newVault = new Vault(loanToken, collateralToken, address(this));
-            vaultAddress = address(newVault);
-            vaults[id] = vaultAddress;
-        }
-
         LendingPool lendingPool = new LendingPool(
             IERC20(loanToken),
             IERC20(collateralToken),
@@ -67,13 +61,12 @@ contract LendingPoolFactory {
             interestRate,
             positionType,
             msg.sender,
-            vaultAddress
+            vault
         );
         lendingPoolIds[id] = address(lendingPool);
         createdLendingPools.push(address(lendingPool));
 
         lendingPools[address(lendingPool)] = true;
-        Vault(vaultAddress).setLendingPool(address(lendingPool), true);
 
         _indexLendingPool(address(lendingPool));
         emit EventLib.CreateLendingPool(address(lendingPool));

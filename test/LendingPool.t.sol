@@ -33,7 +33,8 @@ contract LendingPoolTest is Test {
     function setUp() public {
         // Setup Factory
         MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
-        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        vault = new Vault();
+        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter), address(vault));
         mockFactory = new MockFactory();
 
         // Setup WBTC - USDC lending pool
@@ -96,8 +97,7 @@ contract LendingPoolTest is Test {
         uint256 initialDeposit = 100_000e6;
 
         bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
-        address vaultAddress = lendingPoolFactory.vaults(poolId);
-        Vault vault = Vault(vaultAddress);
+        address vaultAddress = address(vault);
 
         console.log("Vault Address:", vaultAddress);
         console.log("Alice USDC Balance After Mint:", IERC20(mockUSDC).balanceOf(alice));
@@ -155,8 +155,7 @@ contract LendingPoolTest is Test {
         vm.stopPrank();
 
         // Check Vault USDC balance before withdraw
-        address vaultAddress = lendingPoolFactory.vaults(keccak256(abi.encode(address(mockUSDC), address(mockWBTC))));
-        uint256 vaultBalanceBefore = IERC20(mockUSDC).balanceOf(vaultAddress);
+        uint256 vaultBalanceBefore = IERC20(mockUSDC).balanceOf(address(vault));
 
         // Ensure Alice's initial shares are correct
         assertEq(lendingPool.userSupplyShares(alice), supplyAmount, "Alice should have correct supply shares");
@@ -174,7 +173,7 @@ contract LendingPoolTest is Test {
         assertEq(IERC20(mockUSDC).balanceOf(alice), withdrawShares, "Alice should receive withdrawn USDC");
 
         // Check Vault's balance after withdrawal
-        uint256 vaultBalanceAfter = IERC20(mockUSDC).balanceOf(vaultAddress);
+        uint256 vaultBalanceAfter = IERC20(mockUSDC).balanceOf(address(vault));
         assertEq(vaultBalanceAfter, vaultBalanceBefore - withdrawShares, "Vault should decrease by withdraw amount");
 
         // Ensure withdrawal of `0` shares fails
@@ -198,7 +197,7 @@ contract LendingPoolTest is Test {
         // encode parameter to bytes: address,uint256
         bytes memory params = abi.encode(address(this), amount);
 
-        lendingPool.flashLoan(address(mockUSDC), amount, params);
+        vault.flashLoan(address(mockUSDC), amount, params);
     }
 
     // to receive flashloan

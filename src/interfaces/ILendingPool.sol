@@ -46,30 +46,10 @@ interface ILendingPool {
     function borrowByPosition(address onBehalf, uint256 amount) external returns (uint256);
     function repayByPosition(address onBehalf, uint256 amount) external;
     function accrueInterest() external;
-    function flashLoan(address token, uint256 amount, bytes calldata data) external;
 
     function getLiquidationPrice(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256);
     function getHealth(uint256 effectiveCollateral, uint256 borrowAmount) external view returns (uint256);
     function getLTV(uint256 effectiveCollateral, uint256 borrowAmount) external pure returns (uint256);
-}
-
-interface ISwapRouter {
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 deadline;
-        uint256 amountIn;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-    }
-
-    function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
-}
-
-interface IFlashLoanCallback {
-    function onFlashLoan(address token, uint256 amount, bytes calldata data) external;
 }
 
 enum PositionType {

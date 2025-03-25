@@ -10,6 +10,7 @@ import {LendingPoolFactory} from "../src/LendingPoolFactory.sol";
 import {PositionFactory} from "../src/PositionFactory.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {Position} from "../src/Position.sol";
+import {Vault} from "../src/Vault.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
 import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
@@ -20,10 +21,12 @@ contract IntegrationTest is Test {
     MockERC20 public mockWBTC;
     MockV3Aggregator public usdcUsdPriceFeed;
     MockV3Aggregator public wbtcUsdPriceFeed;
+    MockUniswapRouter public mockUniswapRouter;
     LendingPool public lendingPool;
     LendingPoolFactory public lendingPoolFactory;
     PositionFactory public positionFactory;
     MockFactory public mockFactory;
+    Vault public vault;
 
     uint8 liquidationThresholdPercentage = 80;
     uint8 interestRate = 5;
@@ -35,8 +38,9 @@ contract IntegrationTest is Test {
 
     function setUp() public {
         // Setup Factory
-        MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
-        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter));
+        mockUniswapRouter = new MockUniswapRouter();
+        vault = new Vault();
+        lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter), address(vault));
         positionFactory = new PositionFactory();
         mockFactory = new MockFactory();
 
@@ -47,6 +51,8 @@ contract IntegrationTest is Test {
         address collateralTokenAggregator = mockFactory.createMockAggregator("wbtc", "WBTC", 8, 100_000e8);
         mockUniswapRouter.setPriceFeed(loanToken, loanTokenAggregator);
         mockUniswapRouter.setPriceFeed(collateralToken, collateralTokenAggregator);
+        vault.setToken(loanToken, true);
+        vault.setToken(collateralToken, true);
 
         mockUSDC = MockERC20(loanToken);
         mockWBTC = MockERC20(collateralToken);
@@ -62,10 +68,7 @@ contract IntegrationTest is Test {
             positionType
         );
         lendingPool = LendingPool(lendingPoolAddress);
-
-        // Get Vault Address
-        bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
-        address vaultAddress = lendingPoolFactory.vaults(poolId);
+        vault.setLendingPool(lendingPoolAddress, true);
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
@@ -80,7 +83,7 @@ contract IntegrationTest is Test {
         console.log("==============================================================");
 
         // Mint tokens and provide liquidity
-        mockWBTC.mint(address(lendingPool), 100e8); // 100 WBTC (8 decimals)
+        mockWBTC.mint(address(vault), 100e8); // 100 WBTC (8 decimals)
         mockUSDC.mint(address(this), 1_000_000e6); // 1,000,000 USDC (6 decimals)
         supplyLiquidity(150_000e6); // Provide 150,000 USDC liquidity
 
@@ -90,16 +93,12 @@ contract IntegrationTest is Test {
 
         mockUSDC.mint(bob, 20_000e6); // Bob gets 20,000 USDC
         mockWBTC.mint(bob, 2e8); // Bob gets 2 WBTC
-        // Bob supply liquidity
-        // vm.startPrank(bob);
-        // supplyLiquidity(50_000e18);
-        // vm.stopPrank();
 
         // Ensure Vault Exists
-        assert(vaultAddress != address(0));
+        assert(address(vault) != address(0));
 
         // Check if LendingPool is using the correct Vault
-        assertEq(address(lendingPool.vault()), vaultAddress);
+        assertEq(address(lendingPool.vault()), address(vault));
     }
 
     // function testVaultReuse() public {
@@ -140,7 +139,7 @@ contract IntegrationTest is Test {
         vm.stopPrank();
 
         // Treat IntegrationTest as PositionFactory
-        Position position = new Position(address(lendingPool), lendingPool.router(), user);
+        Position position = new Position(address(lendingPool), user);
         address positionAddr = address(position);
         positions[alice][positionAddr] = true;
         lendingPool.registerPosition(positionAddr);
@@ -152,10 +151,6 @@ contract IntegrationTest is Test {
         IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
         position.openPosition(_baseCollateral, _leverage);
         vm.stopPrank();
-
-        // IERC20(mockWBTC).approve(positionAddr, _baseCollateral);
-
-        // position.openPosition(_baseCollateral, _leverage);
 
         console.log("======================== Position ===========================");
         console.log("Before Alice create position");
@@ -182,6 +177,8 @@ contract IntegrationTest is Test {
         console.log("totalCollateral =", lendingPool.totalCollateral());
         console.log("totalSupplyAssets =", lendingPool.totalSupplyAssets());
         console.log("totalBorrowAssets =", lendingPool.totalBorrowAssets());
+        console.log("vault balance WBTC =", MockERC20(mockWBTC).balanceOf(address(vault)));
+        console.log("vault balance USDC =", MockERC20(mockUSDC).balanceOf(address(vault)));
         console.log("==============================================================");
 
         // Alice Create Position
@@ -259,7 +256,7 @@ contract IntegrationTest is Test {
     }
 
     function test_liquidatePosition() public {
-        uint256 baseCollateral = 1e12;
+        uint256 baseCollateral = 1e5;
         uint8 leverage = 200;
 
         // Alice Create Position

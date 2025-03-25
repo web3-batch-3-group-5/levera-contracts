@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
-import {ISwapRouter} from "../interfaces/ILendingPool.sol";
+import {ISwapRouter} from "../interfaces/IVault.sol";
 import {PriceConverterLib} from "../libraries/PriceConverterLib.sol";
 import {MockERC20} from "./MockERC20.sol";
 

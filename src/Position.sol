@@ -2,7 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ILendingPool, ISwapRouter} from "./interfaces/ILendingPool.sol";
+import {ILendingPool} from "./interfaces/ILendingPool.sol";
+import {IVault, ISwapRouter} from "./interfaces/IVault.sol";
 import {PositionStatus} from "./interfaces/IPosition.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
@@ -21,7 +22,6 @@ contract Position {
     error PositionAlreadyLiquidated();
     error PositionHealthy();
 
-    address public router;
     address public immutable owner;
     address public immutable creator;
     ILendingPool public immutable lendingPool;
@@ -37,11 +37,10 @@ contract Position {
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
-    constructor(address _lendingPool, address _router, address _creator) {
+    constructor(address _lendingPool, address _creator) {
         owner = msg.sender;
         creator = _creator;
         lendingPool = ILendingPool(_lendingPool);
-        router = _router;
     }
 
     modifier onlyCreator() {
@@ -161,7 +160,6 @@ contract Position {
         uint256 shares = lendingPool.borrowByPosition(address(this), amount);
         borrowShares += shares;
 
-        IERC20(lendingPool.loanToken()).transferFrom(address(lendingPool), address(this), amount);
         _checkHealth();
         _emitBorrow();
     }
@@ -180,7 +178,7 @@ contract Position {
         flMode = 1;
 
         uint256 borrowCollateral = _baseCollateral * (_leverage - 100) / 100;
-        ILendingPool(lendingPool).flashLoan(collateralToken, borrowCollateral, "");
+        IVault(lendingPool.vault()).flashLoan(collateralToken, borrowCollateral, "");
 
         flMode = 0;
 
@@ -192,7 +190,7 @@ contract Position {
         if (flMode == 1) _flAddLeverage(token, amount);
 
         // repay flashloan
-        IERC20(token).approve(address(lendingPool), amount);
+        IERC20(token).approve(lendingPool.vault(), amount);
     }
 
     function _flAddLeverage(address token, uint256 amount) internal {
@@ -206,10 +204,11 @@ contract Position {
         _swap(lendingPool.loanToken(), token, borrowAmount);
     }
 
-    function _swap(address tokenIn, address tokenOut, uint256 amount) internal onlyCreator returns (uint256) {
-        IERC20(tokenIn).approve(address(router), amount);
+    function _swap(address tokenIn, address tokenOut, uint256 amount) internal returns (uint256) {
+        address routerAddr = lendingPool.router();
+        IERC20(tokenIn).approve(routerAddr, amount);
 
-        ISwapRouter(router).exactInputSingle(
+        ISwapRouter(routerAddr).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: tokenIn,
                 tokenOut: tokenOut,
@@ -249,7 +248,7 @@ contract Position {
             uint256 borrowCollateral = newEffectiveCollateral - effectiveCollateral;
             flMode = 1;
 
-            ILendingPool(lendingPool).flashLoan(lendingPool.collateralToken(), borrowCollateral, "");
+            IVault(lendingPool.vault()).flashLoan(lendingPool.collateralToken(), borrowCollateral, "");
 
             flMode = 0;
         } else if (newLeverage < oldLeverage) {
