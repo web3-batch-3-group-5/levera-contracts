@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ILendingPool, ISwapRouter} from "./interfaces/ILendingPool.sol";
+import {PositionStatus} from "./interfaces/IPosition.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 import {PriceConverterLib} from "./libraries/PriceConverterLib.sol";
 import {EventLib} from "./libraries/EventLib.sol";
@@ -32,7 +33,7 @@ contract Position {
     uint256 public health;
     uint256 public ltv;
     uint256 public lastUpdated;
-    uint256 public status; // 0= open, 1= closed, 2=liquidated
+    uint8 public status; // 0= open, 1= closed, 2=liquidated
 
     uint256 private flMode; // 0= no, 1=add leverage, 2=remove leverage, 3=close position
 
@@ -57,16 +58,17 @@ contract Position {
         lastUpdated = block.timestamp;
 
         emit EventLib.UserPosition(
+            address(this),
             address(lendingPool),
             creator,
-            address(this),
             baseCollateral,
             effectiveCollateral,
             borrowShares,
             leverage,
             liquidationPrice,
             health,
-            ltv
+            ltv,
+            status
         );
     }
 
@@ -122,9 +124,9 @@ contract Position {
     function addCollateral(uint256 amount) public onlyCreator {
         IERC20(lendingPool.collateralToken()).transferFrom(msg.sender, address(this), amount);
         baseCollateral += amount;
+        leverage = effectiveCollateral * 100 / baseCollateral;
         _supplyCollateral(amount);
 
-        leverage = effectiveCollateral * 100 / baseCollateral;
         setRiskInfo();
         _emitUpdatePosition();
     }
@@ -143,10 +145,10 @@ contract Position {
         if (amount > baseCollateral) revert InsufficientCollateral();
         baseCollateral -= amount;
         effectiveCollateral -= amount;
+        leverage = effectiveCollateral * 100 / baseCollateral;
         _checkHealth();
 
         lendingPool.withdrawCollateralByPosition(address(this), amount);
-        leverage = effectiveCollateral * 100 / baseCollateral;
         setRiskInfo();
 
         _emitUpdatePosition();
@@ -172,6 +174,7 @@ contract Position {
     function openPosition(uint256 _baseCollateral, uint256 _leverage) public onlyOwner {
         address collateralToken = lendingPool.collateralToken();
         baseCollateral = _baseCollateral;
+        leverage = _leverage;
         IERC20(collateralToken).transferFrom(msg.sender, address(this), _baseCollateral);
 
         flMode = 1;
@@ -181,7 +184,6 @@ contract Position {
 
         flMode = 0;
 
-        leverage = _leverage;
         setRiskInfo();
         _emitUpdatePosition();
     }
@@ -239,6 +241,7 @@ contract Position {
         uint256 oldLeverage = leverage;
         if (newLeverage == oldLeverage) revert NoChangeDetected();
         uint256 newEffectiveCollateral = baseCollateral * newLeverage / 100;
+        leverage = newLeverage;
 
         // adjust leverage
         if (newLeverage > oldLeverage) {
@@ -262,12 +265,11 @@ contract Position {
         }
 
         effectiveCollateral = newEffectiveCollateral;
-        leverage = newLeverage;
         setRiskInfo();
         _emitUpdatePosition();
     }
 
-    function _resetPosition(uint256 _status) internal {
+    function _resetPosition(uint8 _status) internal {
         borrowShares = 0;
         baseCollateral = 0;
         effectiveCollateral = 0;

@@ -3,7 +3,7 @@ include .env
 .PHONY: compile deploy deploy-verify test verify
 
 define forge_script
-	forge script ./script/Deploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1)
+	forge script ./script/REPLDeploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1)
 endef
 
 # Define a target to build the project
@@ -12,7 +12,9 @@ build:
 
 # Define a target to deploy using the specified network
 deploy: build
-	$(call forge_script,)
+	@cmd="$(call forge_script,)"; \
+	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
+	eval $$cmd
 
 # Define a target to verify deployment using the specified network
 deploy-verify: build

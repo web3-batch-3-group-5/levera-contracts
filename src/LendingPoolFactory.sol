@@ -76,13 +76,7 @@ contract LendingPoolFactory {
         Vault(vaultAddress).setLendingPool(address(lendingPool), true);
 
         _indexLendingPool(address(lendingPool));
-        emit EventLib.CreateLendingPool(
-            address(lendingPool),
-            loanToken,
-            collateralToken,
-            address(this), // LendingPool is created by factory contract
-            true
-        );
+        emit EventLib.CreateLendingPool(address(lendingPool));
 
         return address(lendingPool);
     }
@@ -113,9 +107,9 @@ contract LendingPoolFactory {
 
         lendingPoolIds[id] = _lendingPool;
         lendingPools[_lendingPool] = true;
-        _indexLendingPool(_lendingPool);
 
-        emit EventLib.StoreLendingPool(_lendingPool, loanToken, collateralToken, lendingPool.owner(), true);
+        _indexLendingPool(_lendingPool);
+        emit EventLib.StoreLendingPool(_lendingPool);
     }
 
     function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {
@@ -142,8 +136,11 @@ contract LendingPoolFactory {
         address collateralToken = ILendingPool(_lendingPool).collateralToken();
         address loanToken = ILendingPool(_lendingPool).loanToken();
         address creator = ILendingPool(_lendingPool).creator();
+        PositionType positionType = ILendingPool(_lendingPool).positionType();
 
-        emit EventLib.AllLendingPool(_lendingPool, loanToken, collateralToken, creator, lendingPools[_lendingPool]);
+        emit EventLib.AllLendingPool(
+            _lendingPool, loanToken, collateralToken, uint8(positionType), creator, lendingPools[_lendingPool]
+        );
     }
 
     function getTokenName(address _token) public view returns (string memory) {
