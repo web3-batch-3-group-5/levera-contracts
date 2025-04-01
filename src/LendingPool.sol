@@ -10,8 +10,6 @@ import {PositionType} from "./interfaces/ILendingPool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {Vault} from "./Vault.sol";
 
-import {Test, console} from "forge-std/Test.sol";
-
 contract LendingPool {
     error InvalidToken();
     error InsufficientCollateral();

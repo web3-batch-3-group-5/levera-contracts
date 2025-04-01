@@ -15,29 +15,30 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 contract Deploy is Script {
     function deployFactory() public {
         vm.startBroadcast();
+        address owner = vm.envAddress("OWNER_ADDRESS");
         // ISwapRouter uniswapRouter = ISwapRouter(0x0DA34E6C6361f5B8f5Bdb6276fEE16dD241108c8);
         address mockUniswapRouterAddr = address(new MockUniswapRouter());
-        address vaultAddr = address(new Vault());
+        address vaultAddr = address(new Vault(owner));
         address lendingPoolFactoryAddr = address(new LendingPoolFactory(mockUniswapRouterAddr, vaultAddr));
-        address positionFactory = address(new PositionFactory());
+        address positionFactoryAddr = address(new PositionFactory());
         address mockFactoryAddr = address(new MockFactory());
-        address laDAI = address(new MockERC20("Mock DAI", "laDAI", 18));
-        address laUSDC = address(new MockERC20("Mock USD Coin", "laUSDC", 6));
-        address laUSDT = address(new MockERC20("Mock USD Token", "laUSDT", 6));
-        address laWBTC = address(new MockERC20("Mock Wrapped Bitcoin", "laWBTC", 8));
-        address laWETH = address(new MockERC20("Mock Wrapped Ethereum", "laWETH", 18));
+        // address laDAI = address(new MockERC20("Mock DAI", "laDAI", 18));
+        // address laUSDC = address(new MockERC20("Mock USD Coin", "laUSDC", 6));
+        // address laUSDT = address(new MockERC20("Mock USD Token", "laUSDT", 6));
+        // address laWBTC = address(new MockERC20("Mock Wrapped Bitcoin", "laWBTC", 8));
+        // address laWETH = address(new MockERC20("Mock Wrapped Ethereum", "laWETH", 18));
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock Uniswap Router deployed at:", mockUniswapRouterAddr);
-        console.log("Mock Uniswap Router deployed at:", mockUniswapRouterAddr);
+        console.log("Mock Vault deployed at:", vaultAddr);
         console.log("Lending Pool Factory deployed at:", lendingPoolFactoryAddr);
-        console.log("Position Factory deployed at:", positionFactory);
+        console.log("Position Factory deployed at:", positionFactoryAddr);
         console.log("Mock Factory deployed at:", mockFactoryAddr);
-        console.log("Mock laDAI deployed at:", laDAI);
-        console.log("Mock laUSDC deployed at:", laUSDC);
-        console.log("Mock laUSDT deployed at:", laUSDT);
-        console.log("Mock laWBTC deployed at:", laWBTC);
-        console.log("Mock laWETH deployed at:", laWETH);
+        // console.log("Mock laDAI deployed at:", laDAI);
+        // console.log("Mock laUSDC deployed at:", laUSDC);
+        // console.log("Mock laUSDT deployed at:", laUSDT);
+        // console.log("Mock laWBTC deployed at:", laWBTC);
+        // console.log("Mock laWETH deployed at:", laWETH);
         console.log("==============================================================");
         vm.stopBroadcast();
     }

@@ -44,7 +44,7 @@ contract REPLDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "109695";
+        string memory chain = "oneokrockgo";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         POSITION_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".POSITION_FACTORY"));

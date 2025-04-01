@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {MockUniswapRouter} from "../src/mocks/MockUniswapRouter.sol";
@@ -31,6 +32,7 @@ contract REPLMockDeploy is Script {
     address LA_WETH;
 
     MockConfig[] private mockTokens;
+    address receiver = 0xdC09785337A9bc4535906507Ef70aF3B33D238F9;
 
     constructor() {}
 
@@ -38,7 +40,7 @@ contract REPLMockDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "109695";
+        string memory chain = "leverabicalight";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         MOCK_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_FACTORY"));
@@ -51,8 +53,8 @@ contract REPLMockDeploy is Script {
         mockTokens.push(MockConfig(LA_DAI, "Mock DAI", "laDAI", 18, 1e18, 1_000_000e18));
         mockTokens.push(MockConfig(LA_USDC, "Mock USD Coin", "laUSDC", 6, 1e6, 1_000_000e6));
         mockTokens.push(MockConfig(LA_USDT, "Mock USD Token", "laUSDT", 6, 1e6, 1_000_000e6));
-        mockTokens.push(MockConfig(LA_WBTC, "Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8, 1_000e8));
         mockTokens.push(MockConfig(LA_WETH, "Mock Wrapped Ethereum", "laWETH", 18, 2_500e18, 40_000e18));
+        mockTokens.push(MockConfig(LA_WBTC, "Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8, 1_000e8));
     }
 
     function setupFlameMockUniswapRouter() public {
@@ -64,6 +66,8 @@ contract REPLMockDeploy is Script {
 
         console.log("================ Configure Mock in Router =================");
         console.log("Mock Uniswap Router deployed at:", MOCK_UNISWAP_ROUTER);
+        console.log("Mock Factory deployed at:", MOCK_FACTORY);
+
         for (uint256 i = 0; i < mockTokens.length; i++) {
             MockConfig memory token = mockTokens[i];
             mockFactory.storeMockToken(token.name, token.symbol, token.contractAddr);
@@ -82,13 +86,37 @@ contract REPLMockDeploy is Script {
         vm.stopBroadcast();
     }
 
+    function checkAndTransferMockToken() public {
+        bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
+        vm.startBroadcast(uint256(privateKey));
+        for (uint256 i = 0; i < mockTokens.length; i++) {
+            MockConfig memory token = mockTokens[i];
+            console.log("Token :", token.symbol);
+            console.log("Total Supply :", ERC20(token.contractAddr).totalSupply());
+            console.log("Decimals :", ERC20(token.contractAddr).decimals());
+            console.log("Balance ERC20", ERC20(token.contractAddr).balanceOf(receiver));
+        }
+        console.log("===========================================================");
+        vm.stopBroadcast();
+    }
+
     function mintMockToken() public {
-        address receiver = 0x6dE5361925d8f869fA7dEECe6cF842CC703fE26f;
+        bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
+        vm.startBroadcast(uint256(privateKey));
+
         for (uint256 i = 0; i < mockTokens.length; i++) {
             address token = mockTokens[i].contractAddr;
             MockERC20 mockERC20 = MockERC20(token);
-            mockERC20.mint(receiver, mockTokens[i].supplyAmount);
-            console.log(string(abi.encodePacked("Successfully mint ", mockTokens[i].symbol, " to Address:")), receiver);
+
+            console.log(
+                string(abi.encodePacked("Minting ", mockTokens[i].supplyAmount, mockTokens[i].symbol, " to")), receiver
+            );
+
+            try mockERC20.mint(receiver, mockTokens[i].supplyAmount) {
+                console.log("Successfully minted", mockTokens[i].symbol);
+            } catch {
+                console.log("Minting failed for", mockTokens[i].symbol);
+            }
         }
 
         for (uint256 i = 0; i < mockTokens.length; i++) {
@@ -97,6 +125,8 @@ contract REPLMockDeploy is Script {
                 string(abi.encodePacked("Balance ", mockTokens[i].symbol)), MockERC20(token).balanceOf(receiver)
             );
         }
+
+        vm.stopBroadcast();
     }
 
     function run() external {

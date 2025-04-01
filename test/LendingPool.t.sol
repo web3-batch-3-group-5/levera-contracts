@@ -34,7 +34,7 @@ contract LendingPoolTest is Test {
     function setUp() public {
         // Setup Factory
         MockUniswapRouter mockUniswapRouter = new MockUniswapRouter();
-        vault = new Vault();
+        vault = new Vault(address(this));
         lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter), address(vault));
         mockFactory = new MockFactory();
 
@@ -103,8 +103,6 @@ contract LendingPoolTest is Test {
 
     function test_supply() public {
         uint256 initialDeposit = 100_000e6;
-
-        bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
         address vaultAddress = address(vault);
 
         uint256 vaultBalanceBefore = IERC20(mockUSDC).balanceOf(vaultAddress);

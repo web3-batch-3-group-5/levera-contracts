@@ -3,7 +3,7 @@ include .env
 .PHONY: compile deploy deploy-verify test verify
 
 define forge_script
-	forge script ./script/REPLDeploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1)
+	forge script ./script/REPLMockDeploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1) --slow -vvvv
 endef
 
 # Define a target to build the project
@@ -25,7 +25,7 @@ deploy-verify: build
 
 # Define a pre-existing contract address to verify deployment using the specified network
 verify:
-	@cmd="forge verify-contract ${address} ./src/LendingPool.sol:LendingPool --rpc-url ${RPC_URL} \
+	@cmd="forge verify-contract ${address} src/mocks/Vault.sol:Vault --watch --rpc-url ${RPC_URL} \
 		--verifier ${VERIFIER} --verifier-url ${VERIFIER_URL}"; \
 	if [ -n "$$VERIFIER_API_KEY" ]; then cmd="$$cmd --verifier-api-key $$VERIFIER_API_KEY"; fi; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
