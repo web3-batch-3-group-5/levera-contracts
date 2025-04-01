@@ -39,7 +39,7 @@ contract IntegrationTest is Test {
     function setUp() public {
         // Setup Factory
         mockUniswapRouter = new MockUniswapRouter();
-        vault = new Vault();
+        vault = new Vault(address(this));
         lendingPoolFactory = new LendingPoolFactory(address(mockUniswapRouter), address(vault));
         positionFactory = new PositionFactory();
         mockFactory = new MockFactory();
