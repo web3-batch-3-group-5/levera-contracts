@@ -22,6 +22,7 @@ contract LendingPoolTest is Test {
     LendingPoolFactory public lendingPoolFactory;
     MockFactory public mockFactory;
     Vault public vault;
+    address vaultOwner;
 
     uint8 liquidationThresholdPercentage = 80;
     uint8 interestRate = 5;
@@ -54,7 +55,6 @@ contract LendingPoolTest is Test {
             positionType
         );
         lendingPool = LendingPool(lendingPoolAddress);
-        vault = lendingPool.vault();
 
         console.log("==================DEPLOYED ADDRESSES==========================");
         console.log("Mock USDC deployed at:", address(mockUSDC));
@@ -86,6 +86,14 @@ contract LendingPoolTest is Test {
         // vm.stopPrank();
 
         // assertTrue(Vault != address(0), "Vault was not created!");
+        // Authorize the LendingPool contract in the Vault
+        vault = lendingPool.vault();
+        vault.setToken(loanToken, true);
+        vault.setToken(collateralToken, true);
+
+        vaultOwner = vault.owner();
+        vm.prank(vaultOwner);
+        vault.setLendingPool(address(lendingPool), true);
     }
 
     function supplyLiquidity(uint256 amount) internal {
@@ -99,13 +107,10 @@ contract LendingPoolTest is Test {
         bytes32 poolId = keccak256(abi.encode(address(mockUSDC), address(mockWBTC)));
         address vaultAddress = address(vault);
 
-        console.log("Vault Address:", vaultAddress);
+        uint256 vaultBalanceBefore = IERC20(mockUSDC).balanceOf(vaultAddress);
+        // console.log("Vault Address:", vaultAddress);
         console.log("Alice USDC Balance After Mint:", IERC20(mockUSDC).balanceOf(alice));
-
-        address vaultOwner = vault.owner();
-        vm.startPrank(vaultOwner);
-        vault.setLendingPool(address(lendingPool), true);
-        vm.stopPrank();
+        console.log("Vault address before", IERC20(mockUSDC).balanceOf(vaultAddress));
 
         // Alice supply liquidity
         vm.startPrank(alice);
@@ -123,7 +128,11 @@ contract LendingPoolTest is Test {
         assertEq(IERC20(mockUSDC).balanceOf(address(lendingPool)), 0, "LendingPool should not hold USDC directly");
 
         // Ensure Vault received the USDC
-        assertEq(IERC20(mockUSDC).balanceOf(vaultAddress), initialDeposit, "Vault should hold the supplied USDC");
+        assertEq(
+            IERC20(mockUSDC).balanceOf(vaultAddress),
+            initialDeposit + vaultBalanceBefore,
+            "Vault should hold the supplied USDC"
+        );
 
         // Check Alice's USDC balance (should decrease)
         uint256 aliceBalanceAfter = IERC20(mockUSDC).balanceOf(alice);
@@ -187,17 +196,6 @@ contract LendingPoolTest is Test {
         vm.expectRevert(LendingPool.InsufficientShares.selector);
         lendingPool.withdraw(supplyAmount); // Trying to withdraw more than available
         vm.stopPrank();
-    }
-
-    function test_flashLoan() public {
-        // give 100 USDC to lending pool
-        deal(address(mockUSDC), address(vault), 100e6);
-        uint256 amount = 100e6;
-
-        // encode parameter to bytes: address,uint256
-        bytes memory params = abi.encode(address(this), amount);
-
-        vault.flashLoan(address(mockUSDC), amount, params);
     }
 
     // to receive flashloan

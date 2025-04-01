@@ -313,6 +313,8 @@ contract Position {
         // Transfer remaining collateral to the owner (if any remaining)
         uint256 borrowAmount = convertBorrowSharesToAmount(borrowShares);
         uint256 amountOut = _swap(lendingPool.collateralToken(), lendingPool.loanToken(), effectiveCollateral);
+
+        IERC20(lendingPool.loanToken()).approve(address(lendingPool), 0);
         IERC20(lendingPool.loanToken()).approve(address(lendingPool), amountOut);
         lendingPool.repayByPosition(address(this), borrowShares);
         _emitRepay();
@@ -326,5 +328,20 @@ contract Position {
         _resetPosition(2);
 
         return diffAmount;
+    }
+
+    function repay(uint256 amount) external onlyCreator {
+        if (amount == 0) revert ZeroAmount();
+
+        IERC20(lendingPool.loanToken()).transferFrom(msg.sender, address(this), amount);
+        IERC20(lendingPool.loanToken()).approve(address(lendingPool), amount);
+
+        uint256 shares = convertBorrowAmountToShares(amount);
+        lendingPool.repayByPosition(address(this), shares);
+
+        borrowShares -= shares;
+
+        setRiskInfo();
+        _emitRepay();
     }
 }

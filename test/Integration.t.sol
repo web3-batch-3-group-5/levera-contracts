@@ -259,20 +259,73 @@ contract IntegrationTest is Test {
         uint256 baseCollateral = 1e5;
         uint8 leverage = 200;
 
-        // Alice Create Position
         address onBehalf = createPosition(alice, baseCollateral, leverage);
+        Position position = Position(onBehalf);
 
-        assertTrue(positions[alice][onBehalf], "Position is registered in Position Factory");
-        console.log("==============================================================");
-        console.log("After Alice create position");
-        console.log("effectiveCollateral =", IPosition(onBehalf).effectiveCollateral());
+        assertTrue(positions[alice][onBehalf], "Position is registered");
 
-        uint256 withdrawAmount = IPosition(onBehalf).liquidatePosition();
+        console.log("Before crash: health =", position.health());
+        console.log("Before crash: ltv =", position.ltv());
+
+        // 🔻 Simulate market crash
+        wbtcUsdPriceFeed.updateAnswer(10_000e8);
+
+        // Update risk
+        position.setRiskInfo();
+
+        console.log("After crash: health =", position.health());
+        console.log("After crash: ltv =", position.ltv());
+
+        // ✅ Liquidate
+        uint256 withdrawAmount = position.liquidatePosition();
         positions[alice][onBehalf] = false;
 
-        console.log("==============================================================");
-        console.log("After Alice close position");
-        console.log("mockUSDC balance token", IERC20(mockUSDC).balanceOf(address(this)));
-        console.log("withdrawAmount =", withdrawAmount);
+        console.log("Liquidated. Withdraw USDC:", withdrawAmount);
+    }
+
+    function test_repayPartial() public {
+        uint256 baseCollateral = 1e5;
+        uint8 leverage = 200;
+
+        // Alice creates a leveraged position
+        address onBehalf = createPosition(alice, baseCollateral, leverage);
+
+        // Get how much she borrowed
+        uint256 borrowBefore = IPosition(onBehalf).convertBorrowSharesToAmount(IPosition(onBehalf).borrowShares());
+        console.log("Total Borrowed Amount:", borrowBefore);
+
+        // Mint USDC to Alice for repayment
+        uint256 repayAmount = borrowBefore / 2;
+        mockUSDC.mint(alice, repayAmount);
+
+        // Alice repays half
+        vm.startPrank(alice);
+        IERC20(mockUSDC).approve(onBehalf, repayAmount);
+        IPosition(onBehalf).repay(repayAmount);
+        vm.stopPrank();
+
+        // Assert borrowShares reduced
+        uint256 borrowAfter = IPosition(onBehalf).convertBorrowSharesToAmount(IPosition(onBehalf).borrowShares());
+        console.log("Remaining Borrow Amount:", borrowAfter);
+        assertLt(borrowAfter, borrowBefore, "Borrow amount should decrease after repayment");
+    }
+
+    function test_repayAll() public {
+        uint256 baseCollateral = 1e5;
+        uint8 leverage = 200;
+
+        address onBehalf = createPosition(alice, baseCollateral, leverage);
+
+        uint256 totalBorrowed = IPosition(onBehalf).convertBorrowSharesToAmount(IPosition(onBehalf).borrowShares());
+
+        // Mint USDC to Alice
+        mockUSDC.mint(alice, totalBorrowed);
+
+        vm.startPrank(alice);
+        IERC20(mockUSDC).approve(onBehalf, totalBorrowed);
+        IPosition(onBehalf).repay(totalBorrowed);
+        vm.stopPrank();
+
+        assertEq(IPosition(onBehalf).borrowShares(), 0, "All borrow shares should be repaid");
     }
 }

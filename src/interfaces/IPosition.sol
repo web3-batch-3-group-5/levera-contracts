@@ -34,6 +34,8 @@ interface IPosition {
     function openPosition() external;
     function closePosition() external returns (uint256);
     function liquidatePosition() external returns (uint256);
+    function convertBorrowSharesToAmount(uint256 shares) external view returns (uint256);
+    function repay(uint256 amount) external;
 }
 
 enum PositionStatus {
