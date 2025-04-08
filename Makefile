@@ -3,7 +3,7 @@ include .env
 .PHONY: compile deploy deploy-verify test verify
 
 define forge_script
-	forge script ./script/REPLMockDeploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1) --slow -vvvv
+	forge script ./script/Deploy.s.sol --broadcast --legacy --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY} $(1) -vvvv
 endef
 
 # Define a target to build the project
@@ -12,7 +12,7 @@ build:
 
 # Define a target to deploy using the specified network
 deploy: build
-	@cmd="$(call forge_script,)"; \
+	@cmd="$(call forge_script, --skip-simulation)"; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
 	eval $$cmd
 
@@ -24,8 +24,9 @@ deploy-verify: build
 	eval $$cmd
 
 # Define a pre-existing contract address to verify deployment using the specified network
+# Ex: make verify address=0x path=src/Vault.sol:Vault
 verify:
-	@cmd="forge verify-contract ${address} src/mocks/Vault.sol:Vault --watch --rpc-url ${RPC_URL} \
+	@cmd="forge verify-contract ${address} ${path} --watch --rpc-url ${RPC_URL} \
 		--verifier ${VERIFIER} --verifier-url ${VERIFIER_URL}"; \
 	if [ -n "$$VERIFIER_API_KEY" ]; then cmd="$$cmd --verifier-api-key $$VERIFIER_API_KEY"; fi; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \

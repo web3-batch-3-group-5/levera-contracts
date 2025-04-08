@@ -32,7 +32,7 @@ contract REPLMockDeploy is Script {
     address LA_WETH;
 
     MockConfig[] private mockTokens;
-    address receiver = 0xdC09785337A9bc4535906507Ef70aF3B33D238F9;
+    address receiver = 0xA5C9F28bE3f5128fc1b33454231F17E8add8064b;
 
     constructor() {}
 
@@ -40,7 +40,7 @@ contract REPLMockDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "leverabicalight";
+        string memory chain = "eduChainTestnet";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         MOCK_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_FACTORY"));
@@ -130,6 +130,8 @@ contract REPLMockDeploy is Script {
     }
 
     function run() external {
+        mintMockToken();
         setupFlameMockUniswapRouter();
+        checkAndTransferMockToken();
     }
 }
