@@ -11,6 +11,7 @@ import {ILendingPool, PositionType} from "../src/interfaces/ILendingPool.sol";
 import {IPosition} from "../src/interfaces/IPosition.sol";
 import {LendingPool} from "../src/LendingPool.sol";
 import {Position} from "../src/Position.sol";
+import {Vault} from "../src/Vault.sol";
 
 /*
  * We cannot debug unverified contract hence it's important to create REPL file for setup
@@ -25,6 +26,7 @@ contract REPLDeploy is Script {
     }
 
     address MOCK_UNISWAP_ROUTER;
+    address MOCK_VAULT;
     address POSITION_FACTORY;
     address LENDING_POOL_FACTORY;
     address LA_DAI;
@@ -44,11 +46,12 @@ contract REPLDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "oneokrockgo";
+        string memory chain = "eduChainTestnet";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         POSITION_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".POSITION_FACTORY"));
         LENDING_POOL_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".LENDING_POOL_FACTORY"));
+        MOCK_VAULT = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_VAULT"));
         LA_DAI = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_DAI"));
         LA_DAI_PRICE_FEED = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_DAI_PRICE_FEED"));
         LA_USDC = vm.parseJsonAddress(json, string.concat(".", chain, ".LA_USDC"));
@@ -124,6 +127,7 @@ contract REPLDeploy is Script {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(privateKey);
         LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
+        Vault vault = Vault(MOCK_VAULT);
 
         lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 10_000e6));
         lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED, 10_000e6));
@@ -146,8 +150,12 @@ contract REPLDeploy is Script {
             console.log("Lending Pool deployed at:", lendingPoolAddr);
 
             address loanToken = ILendingPool(lendingPoolAddr).loanToken();
+            address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
 
-            MockERC20(loanToken).mint(address(this), lendingPool.supplyAmount);
+            vault.setLendingPool(lendingPoolAddr, true);
+            vault.setToken(loanToken, true);
+            vault.setToken(collateralToken, true);
+
             MockERC20(loanToken).approve(lendingPoolAddr, lendingPool.supplyAmount);
             ILendingPool(lendingPoolAddr).supply(lendingPool.supplyAmount);
         }
@@ -156,6 +164,6 @@ contract REPLDeploy is Script {
     }
 
     function run() external {
-        _init();
+        _createBulkLendingPools();
     }
 }

@@ -32,7 +32,7 @@ contract REPLMockDeploy is Script {
     address LA_WETH;
 
     MockConfig[] private mockTokens;
-    address receiver = 0xA5C9F28bE3f5128fc1b33454231F17E8add8064b;
+    address receiver = 0x6dE5361925d8f869fA7dEECe6cF842CC703fE26f;
 
     constructor() {}
 
@@ -131,7 +131,6 @@ contract REPLMockDeploy is Script {
 
     function run() external {
         mintMockToken();
-        setupFlameMockUniswapRouter();
         checkAndTransferMockToken();
     }
 }
