@@ -96,17 +96,18 @@ contract REPLDeploy is Script {
         _mintMockToken();
 
         // Create Lending Pool
-        LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
-        address lendingPoolAddr = lendingPoolFactory.createLendingPool(
-            LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 80, 5, PositionType.LONG
-        );
-        console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
-        console.log("Lending Pool deployed at:", lendingPoolAddr);
-
-        address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
+        address lendingPoolAddr = 0x650E2823E16B0FCea6dB27798286AB36bbbf9347;
+        // LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
+        // address lendingPoolAddr = lendingPoolFactory.createLendingPool(
+        //     LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 80, 5, PositionType.LONG
+        // );
+        // console.log("Lending Pool Factory deployed at:", address(lendingPoolFactory));
 
         // Supply Lending Pool for flashloan
-        _supplyLendingPool(lendingPoolAddr);
+        // _supplyLendingPool(lendingPoolAddr);
+
+        console.log("Lending Pool deployed at:", lendingPoolAddr);
+        address collateralToken = ILendingPool(lendingPoolAddr).collateralToken();
 
         // Create Position
         PositionFactory positionFactory = PositionFactory(POSITION_FACTORY);
@@ -119,7 +120,7 @@ contract REPLDeploy is Script {
 
         // Destroy
         positionFactory.deletePosition(lendingPoolAddr, onBehalf);
-        lendingPoolFactory.discardLendingPool(lendingPoolAddr);
+        // lendingPoolFactory.discardLendingPool(lendingPoolAddr);
         vm.stopBroadcast();
     }
 
@@ -164,6 +165,6 @@ contract REPLDeploy is Script {
     }
 
     function run() external {
-        _createBulkLendingPools();
+        _init();
     }
 }
