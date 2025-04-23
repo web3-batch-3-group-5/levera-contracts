@@ -1,9 +1,11 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.25;
 
 import {PoolParams} from "../interfaces/ILendingPool.sol";
 
 library EventLib {
+    event AllToken(address tokenAddr, string name, string symbol, uint8 decimals, uint256 chainId, bool isActive);
+
     // Lending Pool Tables
     event AllLendingPool(
         address lendingPoolAddr,

@@ -12,7 +12,7 @@ build:
 
 # Define a target to deploy using the specified network
 deploy: build
-	@cmd="$(call forge_script, --skip-simulation)"; \
+	@cmd="$(call forge_script, --skip-simulation --disable-block-gas-limit)"; \
 	if [ -n "$$CHAIN_ID" ]; then cmd="$$cmd --chain-id $$CHAIN_ID"; fi; \
 	eval $$cmd
 

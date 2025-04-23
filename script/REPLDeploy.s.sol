@@ -23,6 +23,7 @@ contract REPLDeploy is Script {
         address loanTokenPriceFeed;
         address collateralTokenPriceFeed;
         uint256 supplyAmount;
+        PositionType positionType;
     }
 
     address MOCK_UNISWAP_ROUTER;
@@ -46,7 +47,7 @@ contract REPLDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "eduChainTestnet";
+        string memory chain = "pharosTestnet";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         POSITION_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".POSITION_FACTORY"));
@@ -65,12 +66,20 @@ contract REPLDeploy is Script {
     }
 
     function _mintMockToken() public {
-        address receiver = 0x6dE5361925d8f869fA7dEECe6cF842CC703fE26f;
+        address receiver = 0x7C7bcF1d605F3fEe8E61bCa7605b3007C8b389be;
+
+        uint256 privateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(privateKey);
         MockERC20(LA_USDC).mint(receiver, 1_000_000e6);
-        MockERC20(LA_WBTC).mint(receiver, 1_000e8);
+        MockERC20(LA_USDT).mint(receiver, 1_000_000e6);
+        MockERC20(LA_DAI).mint(receiver, 1_000_000e18);
+        // MockERC20(LA_WBTC).mint(receiver, 1_000e8);
 
         console.log("Balance LaUSDC", MockERC20(LA_USDC).balanceOf(receiver));
-        console.log("Balance LaWBTC", MockERC20(LA_WBTC).balanceOf(receiver));
+        console.log("Balance LaUSDT", MockERC20(LA_USDT).balanceOf(receiver));
+        console.log("Balance LaDAI", MockERC20(LA_DAI).balanceOf(receiver));
+        // console.log("Balance LaWBTC", MockERC20(LA_WBTC).balanceOf(receiver));
+        vm.stopBroadcast();
     }
 
     function _supplyLendingPool(address lendingPoolAddr) internal {
@@ -93,8 +102,6 @@ contract REPLDeploy is Script {
 
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
-        _mintMockToken();
-
         // Create Lending Pool
         LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
         address lendingPoolAddr = lendingPoolFactory.createLendingPool(
@@ -126,15 +133,34 @@ contract REPLDeploy is Script {
     function _createBulkLendingPools() internal {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(privateKey);
+
         LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
         Vault vault = Vault(MOCK_VAULT);
 
-        lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 10_000e6));
-        lendingPoolSeeds.push(LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED, 10_000e6));
-        lendingPoolSeeds.push(LendingPoolConfig(LA_USDT, LA_WBTC, LA_USDT_PRICE_FEED, LA_WBTC_PRICE_FEED, 10_000e6));
-        lendingPoolSeeds.push(LendingPoolConfig(LA_USDT, LA_WETH, LA_USDT_PRICE_FEED, LA_WETH_PRICE_FEED, 10_000e6));
-        lendingPoolSeeds.push(LendingPoolConfig(LA_DAI, LA_WBTC, LA_DAI_PRICE_FEED, LA_WBTC_PRICE_FEED, 10_000e18));
-        lendingPoolSeeds.push(LendingPoolConfig(LA_DAI, LA_WETH, LA_DAI_PRICE_FEED, LA_WETH_PRICE_FEED, 10_000e18));
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDT, LA_WBTC, LA_USDT_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDT, LA_WETH, LA_USDT_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_DAI, LA_WBTC, LA_DAI_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e18, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_DAI, LA_WETH, LA_DAI_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e18, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_WBTC, LA_USDC, LA_WBTC_PRICE_FEED, LA_USDC_PRICE_FEED, 5e8, PositionType.SHORT)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_WETH, LA_USDT, LA_WETH_PRICE_FEED, LA_USDT_PRICE_FEED, 200e18, PositionType.SHORT)
+        );
 
         for (uint256 i = 0; i < lendingPoolSeeds.length; i++) {
             LendingPoolConfig memory lendingPool = lendingPoolSeeds[i];
@@ -145,7 +171,7 @@ contract REPLDeploy is Script {
                 lendingPool.collateralTokenPriceFeed,
                 80,
                 5,
-                PositionType.LONG
+                lendingPool.positionType
             );
             console.log("Lending Pool deployed at:", lendingPoolAddr);
 
@@ -164,6 +190,7 @@ contract REPLDeploy is Script {
     }
 
     function run() external {
-        _init();
+        // _mintMockToken();
+        _createBulkLendingPools();
     }
 }

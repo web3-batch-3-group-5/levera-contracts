@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {MockERC20} from "./MockERC20.sol";
+import {EventLib} from "../libraries/EventLib.sol";
 
 contract MockFactory {
     error MockAlreadyCreated();
@@ -19,6 +20,7 @@ contract MockFactory {
         MockERC20 token = new MockERC20(name, symbol, decimals);
         tokens[id] = address(token);
 
+        _indexToken(address(token), true);
         return address(token);
     }
 
@@ -41,6 +43,7 @@ contract MockFactory {
         if (tokens[id] != address(0)) revert MockAlreadyCreated();
 
         tokens[id] = _mockToken;
+        _indexToken(_mockToken, true);
     }
 
     function storeMockAggregator(string calldata name, string calldata symbol, address _mockAggregator) public {
@@ -54,6 +57,7 @@ contract MockFactory {
         bytes32 id = keccak256(abi.encode(name, symbol));
         if (tokens[id] == address(0)) revert MockNotFound();
 
+        _indexToken(address(tokens[id]), false);
         delete tokens[id];
     }
 
@@ -62,5 +66,11 @@ contract MockFactory {
         if (aggregators[id] == address(0)) revert MockNotFound();
 
         delete aggregators[id];
+    }
+
+    function _indexToken(address _tokenAddr, bool status) internal {
+        MockERC20 token = MockERC20(_tokenAddr);
+
+        emit EventLib.AllToken(_tokenAddr, token.name(), token.symbol(), token.decimals(), block.chainid, status);
     }
 }
