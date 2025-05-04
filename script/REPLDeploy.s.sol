@@ -187,32 +187,30 @@ contract REPLDeploy is Script {
         LendingPoolFactory lendingPoolFactory = LendingPoolFactory(LENDING_POOL_FACTORY);
         Vault vault = Vault(MOCK_VAULT);
 
-        // lendingPoolFactory.discardLendingPool(0xE773fDd853caF7b3f0cA961CC023aC60764CE62e);
-
         lendingPoolSeeds.push(
             LendingPoolConfig(LA_USDC, LA_WBTC, LA_USDC_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e6, PositionType.LONG)
         );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_USDT, LA_WBTC, LA_USDT_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e6, PositionType.LONG)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_USDT, LA_WETH, LA_USDT_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_DAI, LA_WBTC, LA_DAI_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e18, PositionType.LONG)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_DAI, LA_WETH, LA_DAI_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e18, PositionType.LONG)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_WBTC, LA_USDC, LA_WBTC_PRICE_FEED, LA_USDC_PRICE_FEED, 5e8, PositionType.SHORT)
-        // );
-        // lendingPoolSeeds.push(
-        //     LendingPoolConfig(LA_WETH, LA_USDT, LA_WETH_PRICE_FEED, LA_USDT_PRICE_FEED, 200e18, PositionType.SHORT)
-        // );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDC, LA_WETH, LA_USDC_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDT, LA_WBTC, LA_USDT_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_USDT, LA_WETH, LA_USDT_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e6, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_DAI, LA_WBTC, LA_DAI_PRICE_FEED, LA_WBTC_PRICE_FEED, 500_000e18, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_DAI, LA_WETH, LA_DAI_PRICE_FEED, LA_WETH_PRICE_FEED, 500_000e18, PositionType.LONG)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_WBTC, LA_USDC, LA_WBTC_PRICE_FEED, LA_USDC_PRICE_FEED, 5e8, PositionType.SHORT)
+        );
+        lendingPoolSeeds.push(
+            LendingPoolConfig(LA_WETH, LA_USDT, LA_WETH_PRICE_FEED, LA_USDT_PRICE_FEED, 200e18, PositionType.SHORT)
+        );
 
         for (uint256 i = 0; i < lendingPoolSeeds.length; i++) {
             LendingPoolConfig memory lendingPool = lendingPoolSeeds[i];
