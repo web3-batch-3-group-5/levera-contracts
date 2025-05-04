@@ -71,6 +71,6 @@ contract MockFactory {
     function _indexToken(address _tokenAddr, bool status) internal {
         MockERC20 token = MockERC20(_tokenAddr);
 
-        emit EventLib.AllToken(_tokenAddr, token.name(), token.symbol(), token.decimals(), block.chainid, status);
+        emit EventLib.AllToken(_tokenAddr, token.name(), token.symbol(), token.decimals(), status);
     }
 }

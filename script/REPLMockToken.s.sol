@@ -38,10 +38,10 @@ contract REPLMockToken is Script {
         MOCK_FACTORY = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_FACTORY"));
 
         mockTokens.push(MockTokenConfig("Mock DAI", "laDAI", 18, 1e18, 1_000_000e18));
-        // mockTokens.push(MockTokenConfig("Mock USD Coin", "laUSDC", 6, 1e6, 1_000_000e6));
-        // mockTokens.push(MockTokenConfig("Mock USD Token", "laUSDT", 6, 1e6, 1_000_000e6));
-        // mockTokens.push(MockTokenConfig("Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8, 1_000e8));
-        // mockTokens.push(MockTokenConfig("Mock Wrapped Ethereum", "laWETH", 18, 2_500e18, 40_000e18));
+        mockTokens.push(MockTokenConfig("Mock USD Coin", "laUSDC", 6, 1e6, 1_000_000e6));
+        mockTokens.push(MockTokenConfig("Mock USD Token", "laUSDT", 6, 1e6, 1_000_000e6));
+        mockTokens.push(MockTokenConfig("Mock Wrapped Bitcoin", "laWBTC", 8, 100_000e8, 1_000e8));
+        mockTokens.push(MockTokenConfig("Mock Wrapped Ethereum", "laWETH", 18, 2_500e18, 40_000e18));
     }
 
     function setupMockTokens() public {
@@ -56,8 +56,6 @@ contract REPLMockToken is Script {
 
         for (uint256 i = 0; i < mockTokens.length; i++) {
             MockTokenConfig memory token = mockTokens[i];
-            // mockFactory.discardMockToken(token.name, token.symbol);
-            // mockFactory.discardMockAggregator(token.name, token.symbol);
 
             address tokenAddr = mockFactory.createMockToken(token.name, token.symbol, token.decimals);
             address aggregatorAddr =
@@ -68,15 +66,6 @@ contract REPLMockToken is Script {
             console.log(string(abi.encodePacked("================", token.symbol, "=================")));
             console.log("Mock Token deployed at: ", tokenAddr);
             console.log("Mock Aggregator deployed at: ", aggregatorAddr);
-            
-            console.log(string(abi.encodePacked("Minting ", token.symbol, "...")));
-            MockERC20 mockERC20 = MockERC20(tokenAddr);
-            try mockERC20.mint(receiver, token.supplyAmount) {
-                console.log(string(abi.encodePacked("Successfully minted ", token.symbol, " for")), receiver);
-            } catch {
-                console.log("Minting failed");
-            }
-            console.log(string(abi.encodePacked("Balance ", token.symbol)), MockERC20(tokenAddr).balanceOf(receiver));
             console.log("===========================================================");
         }
         vm.stopBroadcast();

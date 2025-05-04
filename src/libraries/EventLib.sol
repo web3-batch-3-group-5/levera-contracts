@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import {PoolParams} from "../interfaces/ILendingPool.sol";
 
 library EventLib {
-    event AllToken(address tokenAddr, string name, string symbol, uint8 decimals, uint256 chainId, bool isActive);
+    event AllToken(address tokenAddr, string name, string symbol, uint8 decimals, bool isActive);
 
     // Lending Pool Tables
     event AllLendingPool(

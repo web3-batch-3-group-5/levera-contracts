@@ -68,8 +68,10 @@ contract LendingPoolFactory {
 
         lendingPools[address(lendingPool)] = true;
 
-        _indexLendingPool(address(lendingPool));
         emit EventLib.CreateLendingPool(address(lendingPool));
+        emit EventLib.AllLendingPool(
+            address(lendingPool), loanToken, collateralToken, uint8(positionType), msg.sender, true
+        );
 
         return address(lendingPool);
     }
@@ -80,29 +82,35 @@ contract LendingPoolFactory {
         canUpdate(_lendingPool)
     {
         lendingPools[_lendingPool] = _status;
-        _indexLendingPool(_lendingPool);
+        ILendingPool pool = ILendingPool(_lendingPool);
+
+        emit EventLib.AllLendingPool(
+            _lendingPool, pool.loanToken(), pool.collateralToken(), uint8(pool.positionType()), msg.sender, _status
+        );
     }
 
     function storeLendingPool(address _lendingPool) external {
         if (_lendingPool == address(0) || !isContract(_lendingPool)) revert NotALendingPool();
         if (lendingPools[_lendingPool]) revert PoolAlreadyCreated();
 
-        LendingPool lendingPool = LendingPool(_lendingPool);
-        address loanToken = address(lendingPool.loanToken());
-        address collateralToken = address(lendingPool.collateralToken());
+        ILendingPool pool = ILendingPool(_lendingPool);
+        address loanToken = address(pool.loanToken());
+        address collateralToken = address(pool.collateralToken());
 
         if (loanToken == address(0) || collateralToken == address(0)) {
             revert NotALendingPool();
         }
 
-        bytes32 id = lendingPool.contractId();
+        bytes32 id = pool.contractId();
         if (lendingPoolIds[id] != address(0)) revert PoolAlreadyCreated();
 
         lendingPoolIds[id] = _lendingPool;
         lendingPools[_lendingPool] = true;
 
-        _indexLendingPool(_lendingPool);
         emit EventLib.StoreLendingPool(_lendingPool);
+        emit EventLib.AllLendingPool(
+            _lendingPool, pool.loanToken(), pool.collateralToken(), uint8(pool.positionType()), msg.sender, true
+        );
     }
 
     function discardLendingPool(address _lendingPool) external isExist(_lendingPool) canUpdate(_lendingPool) {
@@ -123,17 +131,6 @@ contract LendingPoolFactory {
         }
 
         emit EventLib.DiscardLendingPool(_lendingPool);
-    }
-
-    function _indexLendingPool(address _lendingPool) internal {
-        address collateralToken = ILendingPool(_lendingPool).collateralToken();
-        address loanToken = ILendingPool(_lendingPool).loanToken();
-        address creator = ILendingPool(_lendingPool).creator();
-        PositionType positionType = ILendingPool(_lendingPool).positionType();
-
-        emit EventLib.AllLendingPool(
-            _lendingPool, loanToken, collateralToken, uint8(positionType), creator, lendingPools[_lendingPool]
-        );
     }
 
     function getTokenName(address _token) public view returns (string memory) {
