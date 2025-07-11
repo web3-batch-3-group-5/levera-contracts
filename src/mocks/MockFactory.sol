@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import {MockV3Aggregator} from "@chainlink/contracts/v0.8/tests/MockV3Aggregator.sol";
 import {MockERC20} from "./MockERC20.sol";
+import {MockPriceFeed} from "./MockPriceFeed.sol";
 import {EventLib} from "../libraries/EventLib.sol";
 
 contract MockFactory {
@@ -31,7 +32,21 @@ contract MockFactory {
         bytes32 id = keccak256(abi.encode(name, symbol));
         if (aggregators[id] != address(0)) revert MockAlreadyCreated();
 
-        // Deploy new MockV3Aggregator
+        // Deploy new MockPriceFeed (enhanced version with price controls)
+        MockPriceFeed aggregator = new MockPriceFeed(decimals, price);
+        aggregators[id] = address(aggregator);
+
+        return address(aggregator);
+    }
+
+    function createBasicMockAggregator(string calldata name, string calldata symbol, uint8 decimals, int256 price)
+        public
+        returns (address)
+    {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        if (aggregators[id] != address(0)) revert MockAlreadyCreated();
+
+        // Deploy basic MockV3Aggregator (no price controls)
         MockV3Aggregator aggregator = new MockV3Aggregator(decimals, price);
         aggregators[id] = address(aggregator);
 
