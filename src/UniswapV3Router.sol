@@ -26,7 +26,7 @@ contract UniswapV3Router is ISwapRouter {
     {
         // Transfer tokens from sender to this contract
         IERC20(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
-        
+
         // Approve Uniswap router to spend tokens
         IERC20(params.tokenIn).approve(address(uniswapRouter), params.amountIn);
 
@@ -46,18 +46,13 @@ contract UniswapV3Router is ISwapRouter {
         amountOut = uniswapRouter.exactInputSingle(uniswapParams);
     }
 
-    function exactInput(ExactInputParams calldata params)
-        external
-        payable
-        override
-        returns (uint256 amountOut)
-    {
+    function exactInput(ExactInputParams calldata params) external payable override returns (uint256 amountOut) {
         // Extract tokenIn from path (first 20 bytes)
         address tokenIn = address(bytes20(params.path[0:20]));
-        
+
         // Transfer tokens from sender to this contract
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
-        
+
         // Approve Uniswap router to spend tokens
         IERC20(tokenIn).approve(address(uniswapRouter), params.amountIn);
 
@@ -82,7 +77,7 @@ contract UniswapV3Router is ISwapRouter {
     {
         // Transfer max tokens from sender to this contract
         IERC20(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountInMaximum);
-        
+
         // Approve Uniswap router to spend tokens
         IERC20(params.tokenIn).approve(address(uniswapRouter), params.amountInMaximum);
 
@@ -107,18 +102,13 @@ contract UniswapV3Router is ISwapRouter {
         }
     }
 
-    function exactOutput(ExactOutputParams calldata params)
-        external
-        payable
-        override
-        returns (uint256 amountIn)
-    {
+    function exactOutput(ExactOutputParams calldata params) external payable override returns (uint256 amountIn) {
         // Extract tokenIn from path (last 20 bytes)
         address tokenIn = address(bytes20(params.path[params.path.length - 20:]));
-        
+
         // Transfer max tokens from sender to this contract
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), params.amountInMaximum);
-        
+
         // Approve Uniswap router to spend tokens
         IERC20(tokenIn).approve(address(uniswapRouter), params.amountInMaximum);
 

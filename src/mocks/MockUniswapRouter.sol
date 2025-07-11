@@ -43,16 +43,11 @@ contract MockUniswapRouter is ISwapRouter {
         MockERC20(params.tokenOut).transfer(params.recipient, amountOut);
     }
 
-    function exactInput(ExactInputParams calldata params)
-        external
-        payable
-        override
-        returns (uint256 amountOut)
-    {
+    function exactInput(ExactInputParams calldata params) external payable override returns (uint256 amountOut) {
         // For simplicity, mock multi-hop as single hop using first and last token
         address tokenIn = address(bytes20(params.path[0:20]));
         address tokenOut = address(bytes20(params.path[params.path.length - 20:]));
-        
+
         AggregatorV2V3Interface priceFeedIn = priceFeeds[tokenIn];
         AggregatorV2V3Interface priceFeedOut = priceFeeds[tokenOut];
 
@@ -88,16 +83,11 @@ contract MockUniswapRouter is ISwapRouter {
         MockERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
     }
 
-    function exactOutput(ExactOutputParams calldata params)
-        external
-        payable
-        override
-        returns (uint256 amountIn)
-    {
+    function exactOutput(ExactOutputParams calldata params) external payable override returns (uint256 amountIn) {
         // For simplicity, mock multi-hop as single hop using first and last token
         address tokenIn = address(bytes20(params.path[params.path.length - 20:]));
         address tokenOut = address(bytes20(params.path[0:20]));
-        
+
         AggregatorV2V3Interface priceFeedIn = priceFeeds[tokenIn];
         AggregatorV2V3Interface priceFeedOut = priceFeeds[tokenOut];
 

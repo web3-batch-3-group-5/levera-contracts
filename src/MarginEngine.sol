@@ -58,9 +58,9 @@ contract MarginEngine is Ownable {
         require(bytes(symbol).length > 0, "Invalid symbol");
 
         tokens[symbol] = TokenInfo({
-            chainlinkFeed: chainlinkFeed, 
-            token: token, 
-            decimals: decimals, 
+            chainlinkFeed: chainlinkFeed,
+            token: token,
+            decimals: decimals,
             isActive: true,
             manualPrice: 0,
             manualPriceTimestamp: 0,
@@ -97,18 +97,18 @@ contract MarginEngine is Ownable {
     function setPrice(string memory symbol, uint256 price) external onlyOwner {
         require(tokens[symbol].token != address(0), "Token not found");
         require(price > 0, "Price must be positive");
-        
+
         tokens[symbol].manualPrice = price;
         tokens[symbol].manualPriceTimestamp = block.timestamp;
         tokens[symbol].useManualPrice = true;
-        
+
         emit ManualPriceSet(symbol, price, block.timestamp);
     }
 
     /// @notice Disable manual price and return to oracle price
     function disableManualPrice(string memory symbol) external onlyOwner {
         require(tokens[symbol].token != address(0), "Token not found");
-        
+
         tokens[symbol].useManualPrice = false;
         tokens[symbol].manualPrice = 0;
         tokens[symbol].manualPriceTimestamp = 0;
@@ -116,14 +116,14 @@ contract MarginEngine is Ownable {
 
     /// @notice Auto-set price when oracle is stale (emergency function)
     function autoSetPriceOnStale(string memory symbol) external onlyOwner {
-        (uint256 currentPrice, , bool isStale) = getOraclePriceView(symbol);
-        
+        (uint256 currentPrice,, bool isStale) = getOraclePriceView(symbol);
+
         if (isStale) {
             // Use the last known oracle price as manual price
             tokens[symbol].manualPrice = currentPrice;
             tokens[symbol].manualPriceTimestamp = block.timestamp;
             tokens[symbol].useManualPrice = true;
-            
+
             emit ManualPriceSet(symbol, currentPrice, block.timestamp);
         } else {
             revert("Oracle price is not stale");
@@ -168,7 +168,7 @@ contract MarginEngine is Ownable {
         returns (uint256 price, uint256 updatedAt, bool isStale)
     {
         (price, updatedAt, isStale) = getOraclePriceView(symbol);
-        
+
         // Emit event if price is stale
         if (isStale) {
             emit StalePriceDetected(symbol, updatedAt, stalePriceThreshold);
