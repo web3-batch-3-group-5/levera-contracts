@@ -11,14 +11,7 @@ contract TestPriceSeparation is Script {
     MockFactory public factory;
 
     function setUp() public {
-        string memory root = vm.projectRoot();
-        string memory fullPath = string.concat(root, "/config.json");
-        string memory json = vm.readFile(fullPath);
-        string memory chain = "eduChainTestnet";
-
-        address mockFactory = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_FACTORY"));
-
-        factory = MockFactory(mockFactory);
+        // We'll deploy factory in each test to avoid config.json dependencies
         marginEngine = MockMarginEngine(payable(address(0))); // Will be set in deploy
     }
 
@@ -26,6 +19,9 @@ contract TestPriceSeparation is Script {
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
+        // Deploy MockFactory first
+        factory = new MockFactory();
+        
         // Deploy MockMarginEngine
         marginEngine = new MockMarginEngine(address(factory), address(factory));
 
@@ -33,9 +29,13 @@ contract TestPriceSeparation is Script {
         address token = factory.createMockToken("Test Token", "TEST", 18);
         address priceFeed = factory.createMockAggregator("Test Token", "TEST", 18, 1000e18);
 
+        // Transfer price feed ownership from factory to margin engine
+        factory.transferPriceFeedOwnership("Test Token", "TEST", address(marginEngine));
+
         // Add token to margin engine
         marginEngine.addMockToken("TEST", token, priceFeed, 18);
 
+        console.log("MockFactory deployed at:", address(factory));
         console.log("MockMarginEngine deployed at:", address(marginEngine));
         console.log("Test token created at:", token);
         console.log("Test price feed created at:", priceFeed);
@@ -45,6 +45,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testViewFunction() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -64,6 +66,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testNonViewFunction() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -83,6 +87,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testSetPriceFunction() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -108,6 +114,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testStalePrice() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -138,6 +146,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testDisableManualPrice() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -165,6 +175,8 @@ contract TestPriceSeparation is Script {
     }
 
     function testMockPriceManipulation() public {
+        deployAndSetup(); // Deploy contracts first
+        
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -174,14 +186,14 @@ contract TestPriceSeparation is Script {
         (uint256 originalPrice,,) = marginEngine.getOraclePriceView("TEST");
         console.log("Original price:", originalPrice);
 
-        // Update mock price by percentage
+        // Update mock price by percentage using MockMarginEngine function (which owns the price feed)
         marginEngine.updateMockPriceByPercentage("TEST", 50); // 50% increase
 
         // Get updated price
         (uint256 updatedPrice,,) = marginEngine.getOraclePriceView("TEST");
         console.log("Updated price (+50%):", updatedPrice);
 
-        // Verify the increase
+        // Verify the increase (with some tolerance for conversion calculations)
         uint256 expectedPrice = originalPrice + (originalPrice * 50 / 100);
         require(updatedPrice >= expectedPrice * 99 / 100, "Price increase too small");
         require(updatedPrice <= expectedPrice * 101 / 100, "Price increase too large");

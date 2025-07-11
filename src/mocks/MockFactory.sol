@@ -88,4 +88,13 @@ contract MockFactory {
 
         emit EventLib.AllToken(_tokenAddr, token.name(), token.symbol(), token.decimals(), status);
     }
+
+    /// @notice Transfer ownership of a mock price feed to another address
+    function transferPriceFeedOwnership(string calldata name, string calldata symbol, address newOwner) external {
+        bytes32 id = keccak256(abi.encode(name, symbol));
+        address aggregator = aggregators[id];
+        require(aggregator != address(0), "Aggregator not found");
+
+        MockPriceFeed(aggregator).transferOwnership(newOwner);
+    }
 }

@@ -10,15 +10,20 @@ contract MockPriceFeed is MockV3Aggregator {
 
     event PriceUpdated(int256 oldPrice, int256 newPrice, uint256 timestamp);
 
+    constructor(uint8 _decimals, int256 _initialPrice) MockV3Aggregator(_decimals, _initialPrice) {
+        owner = msg.sender;
+        basePrice = _initialPrice;
+        currentPrice = _initialPrice;
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
         _;
     }
 
-    constructor(uint8 _decimals, int256 _initialPrice) MockV3Aggregator(_decimals, _initialPrice) {
-        owner = msg.sender;
-        basePrice = _initialPrice;
-        currentPrice = _initialPrice;
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "New owner cannot be zero address");
+        owner = newOwner;
     }
 
     function updatePrice(int256 _newPrice) external onlyOwner {
@@ -66,10 +71,5 @@ contract MockPriceFeed is MockV3Aggregator {
 
     function getBasePrice() external view returns (int256) {
         return basePrice;
-    }
-
-    function transferOwnership(address _newOwner) external onlyOwner {
-        require(_newOwner != address(0), "Invalid new owner");
-        owner = _newOwner;
     }
 }

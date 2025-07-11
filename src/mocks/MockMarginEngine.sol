@@ -23,7 +23,7 @@ contract MockMarginEngine is MarginEngine {
         // Add to main contract
         super.addToken(symbol, token, mockPriceFeed, decimals);
 
-        // Store reference to mock price feed
+        // Store reference to mock price feed (ownership should already be transferred)
         mockPriceFeeds[symbol] = mockPriceFeed;
     }
 
@@ -86,6 +86,14 @@ contract MockMarginEngine is MarginEngine {
         override
         returns (uint256 price, uint256 updatedAt, bool isStale)
     {
+        // First check if there's a manual price override (from parent contract)
+        if (tokens[symbol].useManualPrice) {
+            price = tokens[symbol].manualPrice;
+            updatedAt = tokens[symbol].manualPriceTimestamp;
+            isStale = false;
+            return (price, updatedAt, isStale);
+        }
+
         if (useMockPrices && mockPriceFeeds[symbol] != address(0)) {
             // Use mock price feed
             MockPriceFeed mockFeed = MockPriceFeed(mockPriceFeeds[symbol]);
