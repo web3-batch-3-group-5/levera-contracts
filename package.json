@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "A permissionless lending, borrowing, and margin trading protocol.",
   "scripts": {
-    "test": "make test"
+    "test": "make test",
+    "prepare": "husky",
+    "pre-commit": "forge fmt --check && forge build --sizes && forge test -vvv"
   },
   "license": "ISC",
   "dependencies": {
     "dotenv": "~16.3.1"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0"
   }
 }

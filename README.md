@@ -14,6 +14,19 @@ Foundry consists of:
 
 https://book.getfoundry.sh/
 
+## Setup
+
+### Install Dependencies
+
+```shell
+$ pnpm install
+```
+
+This will automatically set up git hooks via husky that run before each commit:
+- `forge fmt --check` - Code formatting validation
+- `forge build --sizes` - Contract compilation and size check  
+- `forge test -vvv` - Full test suite
+
 ## Usage
 
 ### Build

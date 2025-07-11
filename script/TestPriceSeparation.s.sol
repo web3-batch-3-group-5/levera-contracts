@@ -21,7 +21,7 @@ contract TestPriceSeparation is Script {
 
         // Deploy MockFactory first
         factory = new MockFactory();
-        
+
         // Deploy MockMarginEngine
         marginEngine = new MockMarginEngine(address(factory), address(factory));
 
@@ -46,7 +46,7 @@ contract TestPriceSeparation is Script {
 
     function testViewFunction() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -67,7 +67,7 @@ contract TestPriceSeparation is Script {
 
     function testNonViewFunction() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -88,7 +88,7 @@ contract TestPriceSeparation is Script {
 
     function testSetPriceFunction() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -115,7 +115,7 @@ contract TestPriceSeparation is Script {
 
     function testStalePrice() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -147,7 +147,7 @@ contract TestPriceSeparation is Script {
 
     function testDisableManualPrice() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
@@ -176,7 +176,7 @@ contract TestPriceSeparation is Script {
 
     function testMockPriceManipulation() public {
         deployAndSetup(); // Deploy contracts first
-        
+
         bytes32 privateKey = vm.envBytes32("PRIVATE_KEY");
         vm.startBroadcast(uint256(privateKey));
 
