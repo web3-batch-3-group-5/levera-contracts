@@ -61,7 +61,7 @@ contract REPLDeploy is Script {
         string memory root = vm.projectRoot();
         string memory fullPath = string.concat(root, "/config.json");
         string memory json = vm.readFile(fullPath);
-        string memory chain = "pharosTestnet";
+        string memory chain = "eduChainTestnet";
 
         MOCK_UNISWAP_ROUTER = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_UNISWAP_ROUTER"));
         MOCK_VAULT = vm.parseJsonAddress(json, string.concat(".", chain, ".MOCK_VAULT"));

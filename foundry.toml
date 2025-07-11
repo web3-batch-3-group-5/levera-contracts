@@ -1,14 +1,19 @@
 [profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
-viaIR = true
-ffi = true
-fs_permissions = [{ access = "read", path = "./"}]
-evm_version="cancun"
+src = "src"                     # Source directory for Solidity contracts
+out = "out"                     # Output directory for compiled artifacts
+libs = ["lib"]                  # Dependencies directory (forge install packages)
+viaIR = true                    # Uses intermediate representation for better optimization and smaller bytecode
+ffi = true                      # Enables foreign function interface for scripts to execute shell commands
+fs_permissions = [{ access = "read", path = "./"}]  # Allow scripts to read config files and project data
+evm_version="cancun"            # Target latest EVM version for modern opcodes and gas optimizations
+optimizer = true               # Enable Solidity optimizer to reduce contract size (fixes EIP-170 violations)
+optimizer_runs = 200           # Balanced optimization: 200 runs good for deployment vs runtime gas efficiency
+auto_detect_solc = false       # Ensures consistent Solidity version across different environments
 remappings = [
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-  "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/"
+  "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/",
+  "@uniswap/v3-core/=lib/v3-core/",
+  "@uniswap/v3-periphery/=lib/v3-periphery/"
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

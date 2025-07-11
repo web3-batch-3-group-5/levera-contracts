@@ -37,11 +37,68 @@ contract MockUniswapRouter is ISwapRouter {
         );
 
         MockERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        // Ensure contract has enough tokenOut for swap if DEX is connected
-        // require(MockERC20(params.tokenOut).balanceOf(address(this)) >= amountOut, "Insufficient liquidity");
         MockERC20(params.tokenOut).mint(address(this), amountOut);
 
-        // Transfer tokenOut to sender
-        MockERC20(params.tokenOut).transfer(msg.sender, amountOut);
+        // Transfer tokenOut to recipient
+        MockERC20(params.tokenOut).transfer(params.recipient, amountOut);
+    }
+
+    function exactInput(ExactInputParams calldata params) external payable override returns (uint256 amountOut) {
+        // For simplicity, mock multi-hop as single hop using first and last token
+        address tokenIn = address(bytes20(params.path[0:20]));
+        address tokenOut = address(bytes20(params.path[params.path.length - 20:]));
+
+        AggregatorV2V3Interface priceFeedIn = priceFeeds[tokenIn];
+        AggregatorV2V3Interface priceFeedOut = priceFeeds[tokenOut];
+
+        require(address(priceFeedIn) != address(0), "No price feed for tokenIn");
+        require(address(priceFeedOut) != address(0), "No price feed for tokenOut");
+
+        amountOut = PriceConverterLib.getConversionRate(params.amountIn, priceFeedIn, priceFeedOut);
+        require(amountOut >= params.amountOutMinimum, "Slippage exceeded");
+
+        MockERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
+        MockERC20(tokenOut).mint(address(this), amountOut);
+        MockERC20(tokenOut).transfer(params.recipient, amountOut);
+    }
+
+    function exactOutputSingle(ExactOutputSingleParams calldata params)
+        external
+        payable
+        override
+        returns (uint256 amountIn)
+    {
+        AggregatorV2V3Interface priceFeedIn = priceFeeds[params.tokenIn];
+        AggregatorV2V3Interface priceFeedOut = priceFeeds[params.tokenOut];
+
+        require(address(priceFeedIn) != address(0), "No price feed for tokenIn");
+        require(address(priceFeedOut) != address(0), "No price feed for tokenOut");
+
+        // Calculate required input amount
+        amountIn = PriceConverterLib.getConversionRate(params.amountOut, priceFeedOut, priceFeedIn);
+        require(amountIn <= params.amountInMaximum, "Excessive input amount");
+
+        MockERC20(params.tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        MockERC20(params.tokenOut).mint(address(this), params.amountOut);
+        MockERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
+    }
+
+    function exactOutput(ExactOutputParams calldata params) external payable override returns (uint256 amountIn) {
+        // For simplicity, mock multi-hop as single hop using first and last token
+        address tokenIn = address(bytes20(params.path[params.path.length - 20:]));
+        address tokenOut = address(bytes20(params.path[0:20]));
+
+        AggregatorV2V3Interface priceFeedIn = priceFeeds[tokenIn];
+        AggregatorV2V3Interface priceFeedOut = priceFeeds[tokenOut];
+
+        require(address(priceFeedIn) != address(0), "No price feed for tokenIn");
+        require(address(priceFeedOut) != address(0), "No price feed for tokenOut");
+
+        amountIn = PriceConverterLib.getConversionRate(params.amountOut, priceFeedOut, priceFeedIn);
+        require(amountIn <= params.amountInMaximum, "Excessive input amount");
+
+        MockERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        MockERC20(tokenOut).mint(address(this), params.amountOut);
+        MockERC20(tokenOut).transfer(params.recipient, params.amountOut);
     }
 }

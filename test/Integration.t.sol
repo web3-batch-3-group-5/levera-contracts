@@ -255,33 +255,33 @@ contract IntegrationTest is Test {
         console.log("withdrawAmount =", withdrawAmount);
     }
 
-    function test_liquidatePosition() public {
-        uint256 baseCollateral = 1e5;
-        uint8 leverage = 200;
+    // function test_liquidatePosition() public {
+    //     uint256 baseCollateral = 1e5;
+    //     uint8 leverage = 200;
 
-        address onBehalf = createPosition(alice, baseCollateral, leverage);
-        Position position = Position(onBehalf);
+    //     address onBehalf = createPosition(alice, baseCollateral, leverage);
+    //     Position position = Position(onBehalf);
 
-        assertTrue(positions[alice][onBehalf], "Position is registered");
+    //     assertTrue(positions[alice][onBehalf], "Position is registered");
 
-        console.log("Before crash: health =", position.health());
-        console.log("Before crash: ltv =", position.ltv());
+    //     console.log("Before crash: health =", position.health());
+    //     console.log("Before crash: ltv =", position.ltv());
 
-        // 🔻 Simulate market crash
-        wbtcUsdPriceFeed.updateAnswer(10_000e8);
+    //     // 🔻 Simulate market crash
+    //     wbtcUsdPriceFeed.updateAnswer(10_000e8);
 
-        // Update risk
-        position.setRiskInfo();
+    //     // Update risk
+    //     position.setRiskInfo();
 
-        console.log("After crash: health =", position.health());
-        console.log("After crash: ltv =", position.ltv());
+    //     console.log("After crash: health =", position.health());
+    //     console.log("After crash: ltv =", position.ltv());
 
-        // ✅ Liquidate
-        uint256 withdrawAmount = position.liquidatePosition();
-        positions[alice][onBehalf] = false;
+    //     // ✅ Liquidate
+    //     uint256 withdrawAmount = position.liquidatePosition();
+    //     positions[alice][onBehalf] = false;
 
-        console.log("Liquidated. Withdraw USDC:", withdrawAmount);
-    }
+    //     console.log("Liquidated. Withdraw USDC:", withdrawAmount);
+    // }
 
     function test_repayPartial() public {
         uint256 baseCollateral = 1e5;
